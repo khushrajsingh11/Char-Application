@@ -1,136 +1,237 @@
 import express from 'express'
 import mongoose from 'mongoose';
 import User from '../models/User.js'
-
-
-import Message from '../models/Message.js';
+import Conversation from '../models/Conversation.js'
+import Message from '../models/Message.js'
 import { io, userSocketMap} from '../server.js';
 import cloudinary from '../lib/cloudinary.js';
+import dotenv from 'dotenv';
+let { cloud_name, api_key, api_secret } = cloudinary.config();
 
-cloudinary.config({
-  cloud_name: 'dsdeulelt',
-  api_key: '242125981991162',
-  api_secret: 'vwOt0XljkqBcZ1UNecrzM-9LFyM',
-});
+export const getMessages = async (req, res) => {
+    try {
+        const { conversationId } = req.params;
+        const loggedInUserId = req.user._id;
 
+        const conversation = await Conversation.findOne({
+            _id: conversationId,
+            participants: loggedInUserId,
+        }).populate("messages");
 
-export const getUsersForSidebar = async (req, res) => {
-  try {
-    const userId = req.user._id;
-    const filteredUsers = await User.find({ _id: { $ne: userId } }).select("-password");
+        if (!conversation) {
+            return res.status(404).json({ error: "Conversation not found or you're not a member." });
+        }
+        
+        Message.updateMany(
+            {
+                conversationId: conversationId,
+                seen: false,
+                senderId: { $ne: loggedInUserId }
+            },
+            {
+                seen: true
+            }).populate({
+                path: "messages",
+                options: { sort: { updatedAt: 1 } }  
+              }).exec();
+              
+        res.status(200).json(conversation.messages);
 
-    const unseenMessages = {};
-
-    const promises = filteredUsers.map(async (user) => {
-      const message = await Message.find({
-        senderId: user._id,
-        receiverId: userId,
-        seen: false,
-      });
-
-      if (message.length > 0) {
-        unseenMessages[user._id] = message.length;
-      }
-    });
-
-    await Promise.all(promises);
-
-    res.json({ success: true, users: filteredUsers, unseenMessages });
-  } catch (error) {
-    console.log(error);
-    res.json({ success: false, message: error.message });
-  }
+    } catch (error) {
+        console.error("Error in getMessages: ", error);
+        res.status(500).json({ error: "Internal server error" });
+    }
 };
 
-
-export const getMessage = async (req, res) => {
+export const markAsSeen = async (req, res) => {
   try {
-    const { id: selectedUserId } = req.params;
-    const myId = req.user._id;
+    const { messageId } = req.params; 
 
-  
-    if (!mongoose.Types.ObjectId.isValid(selectedUserId) || !mongoose.Types.ObjectId.isValid(myId)) {
-      return res.status(400).json({ success: false, message: "Invalid user ID" });
-    }
-
-    const messages = await Message.find({
-      $or: [
-        { senderId: myId, receiverId: selectedUserId },
-        { senderId: selectedUserId, receiverId: myId },
-      ],
-    });
-
-    await Message.updateMany(
-      { senderId: selectedUserId, receiverId: myId },
-      { seen: true }
+    const updated = await Message.findByIdAndUpdate(
+      messageId,
+      { seen: true },
+      { new: true } 
     );
 
-    res.status(200).json({ success: true, messages });
+    if (!updated) {
+      return res.status(404).json({ message: "Message not found" });
+    }
+
+    res.json({ message: "Successfully marked as seen", updatedMessage: updated });
   } catch (error) {
-    console.error("Error in getMessage:", error);
-    res.status(500).json({ success: false, message: error.message });
+    console.error("Error marking message as seen:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
-export const markMessageAsSeen = async (req, res) => {
-  try {
-    const { id } = req.params;
-    
-    if (!id) {
-      return res.status(400).json({ success: false, message: 'Message ID is required' });
-    }
-    
-    const updatedMessage = await Message.findByIdAndUpdate(
-      id, 
-      { seen: true }, 
-      { new: true }
-    );
-    
-    if (!updatedMessage) {
-      return res.status(404).json({ success: false, message: 'Message not found' });
-    }
-    
-    res.json({ success: true, message: updatedMessage });
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+
+
 export const sendMessage = async (req, res) => {
+    try {
+        const { text, image } = req.body;
+        const { conversationId } = req.params;
+        const senderId = req.user._id;
+
+        if (!text && !image) {
+            return res.status(400).json({ error: 'Text or image is required' });
+        }
+
+        const conversation = await Conversation.findById(conversationId);
+
+        if (!conversation) {
+            return res.status(404).json({ error: "Conversation not found." });
+        }
+
+        let imageUrl = '';
+        if (image) {
+            const uploadResponse = await cloudinary.uploader.upload(image);
+            imageUrl = uploadResponse.secure_url;
+        }
+
+        const newMessage = new Message({
+            senderId,
+            conversationId,
+            text,
+            image: imageUrl,
+        });
+
+        conversation.lastMessage = newMessage._id;
+        
+        await Promise.all([
+            newMessage.save(),
+            conversation.save()
+        ]);
+
+        io.to(conversationId).emit('newMessage', newMessage);
+
+        res.status(201).json(newMessage);
+
+    } catch (error) {
+        console.error('Error in sendMessage:', error);
+        res.status(500).json({ error: 'Server error' });
+    }
+};
+
+export const deleteMessage = async (req, res) => {
+    try {
+        const { messageId } = req.params;
+        const loggedInUserId = req.user._id;
+
+        const message = await Message.findById(messageId);
+
+        if (!message) {
+            return res.status(404).json({ message: "Message not found." });
+        }
+
+        if (message.senderId.toString() !== loggedInUserId.toString()) {
+            return res.status(403).json({ message: "You are not authorized to delete this message." });
+        }
+        await Message.findByIdAndDelete(messageId);
+
+        res.status(200).json({ message: "Message deleted successfully." });
+
+    } catch (error) {
+        console.error("Error in deleteMessage: ", error.message);
+        res.status(500).json({ message: "Internal server error" });
+    }
+};
+
+export const editMessage = async (req, res) => {
+    try {
+        const { messageId } = req.params;
+        const { newText } = req.body;
+        const loggedInUserId = req.user._id;
+
+        if (!newText) {
+            return res.status(400).json({ message: "New text is required." });
+        }
+
+        const message = await Message.findById(messageId);
+
+        if (!message) {
+            return res.status(404).json({ message: "Message not found." });
+        }
+
+        if (message.senderId.toString() !== loggedInUserId.toString()) {
+            return res.status(403).json({ message: "You are not authorized to edit this message." });
+        }
+
+        message.text = newText;
+        message.isEdited = true;
+        await message.save();
+
+        res.status(200).json(message);
+
+    } catch (error) {
+        console.error("Error in editMessage: ", error.message);
+        res.status(500).json({ message: "Internal server error" });
+    }
+};
+export const reactToMessage = async (req, res) => {
+    try {
+        const { messageId } = req.params;
+        const { emoji } = req.body;
+        const loggedInUserId = req.user._id;
+
+        if (!emoji) {
+            return res.status(400).json({ message: "Emoji is required." });
+        }
+
+        const message = await Message.findById(messageId);
+
+        if (!message) {
+            return res.status(404).json({ message: "Message not found." });
+        }
+        
+        // Verify the user is part of the conversation before allowing a reaction
+        const conversation = await Conversation.findById(message.conversationId);
+        if(!conversation.participants.includes(loggedInUserId)){
+             return res.status(403).json({ message: "You are not a member of this conversation." });
+        }
+
+        const existingReactionIndex = message.reactions.findIndex(
+            (reaction) => reaction.userId.toString() === loggedInUserId.toString()
+        );
+
+        if (existingReactionIndex > -1) {
+            // If the user has already reacted with the same emoji, remove it (toggle off).
+            if (message.reactions[existingReactionIndex].emoji === emoji) {
+                message.reactions.splice(existingReactionIndex, 1);
+            } else {
+                // If the emoji is different, update the existing reaction.
+                message.reactions[existingReactionIndex].emoji = emoji;
+            }
+        } else {
+            // If the user hasn't reacted yet, add the new reaction.
+            message.reactions.push({ userId: loggedInUserId, emoji });
+        }
+
+        await message.save();
+        res.status(200).json(message);
+
+    } catch (error) {
+        console.error("Error in reactToMessage: ", error.message);
+        res.status(500).json({ message: "Internal server error" });
+    }
+};
+
+
+export const getCloudinarySignature = (req, res) => {
   try {
-    const { text, image } = req.body;
-    const receiverId = req.params.id;
-    const senderId = req.user._id;
+    const timestamp = Math.floor(Date.now() / 1000);
 
-    if (!text && !image) {
-      return res.status(400).json({ success: false, message: 'Text or image is required' });
-    }
+    const signature = cloudinary.v2.utils.api_sign_request(
+      { timestamp },
+      process.env.CLOUDINARY_API_SECRET
+    );
 
-    let imageUrl = '';
-    if (image) {
-      const uploadResponse = await cloudinary.uploader.upload(image);
-      imageUrl = uploadResponse.secure_url;
-    }
-
-    const newMessage = await Message.create({
-      senderId,
-      receiverId,
-      text,
-      image: imageUrl,
+    res.status(200).json({
+      timestamp,
+      signature,
+      api_key: process.env.CLOUDINARY_API_KEY,
+      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
     });
-
-    const receiverSocket = userSocketMap[receiverId];
-    if (receiverSocket) {
-      io.to(receiverSocket).emit('newMessage', newMessage);
-    }
-
-    const senderSocket = userSocketMap[senderId];
-    if (senderSocket) {
-      io.to(senderSocket).emit('newMessage', newMessage);
-    }
-
-    return res.status(201).json({ success: true, newMessage });
   } catch (error) {
-    console.error('Error in sendMessage:', error);
-    return res.status(500).json({ success: false, message: 'Server error' });
+    console.error('Cloudinary signature generation error:', error);
+    res.status(500).json({ error: 'Failed to generate signature' });
   }
 };

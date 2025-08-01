@@ -12,22 +12,25 @@ export const ChatProvider = ({ children }) => {
 
   const { axios, socket } = useContext(AuthContext);
 
-  const getUsers = async () => {
-    try {
-      const { data } = await axios.get('/api/messages/users');
-      if (data.success) {
-        setUsers(data.users);
-        setUnseenMessages(data.unseenMessages);
-      }
-    } catch (error) {
-      console.log(error.message);
-      toast.error(error.message);
-    }
-  };
 
-  const getMessages = async (userId) => {
+
+const getUsersForSearch = async () => {
+  try {
+    const { data } = await axios.get("/api/users/getallusersearch");
+    return data;
+  } catch (error) {
+    console.error("Error fetching users:", error.message);
+    toast.error("Failed to load users");
+    return [];
+  }
+};
+
+// Trigger this when user opens search
+
+
+  const getMessages = async (conversationId) => {
     try {
-      const { data } = await axios.get(`/api/messages/${userId}`);
+      const { data } = await axios.get(`/api/messages/${conversationId}`);
       if (data.success) {
         setMessages(data.messages);
       }
@@ -49,13 +52,14 @@ export const ChatProvider = ({ children }) => {
     }
   };
 
-  const subscribeToMessages = () => {
+  const subscribeToMessages = (selectedConversationId) => {
     if (!socket) return;
     socket.on("newMessage", (newMessage) => {
-      if (selectedUser && newMessage.senderId === selectedUser._id) {
+      if (selectedUser && newMessage.conversationId === selectedConversationId) {
         newMessage.seen = true;
         setMessages((prevMessages) => [...prevMessages, newMessage]);
-        axios.put(`/api/messages/mark/${newMessage._id}`);
+        let messageId = newMessage._id;
+        axios.put(`/api/messages/mark/${messageId}`);
       } else {
         setUnseenMessages((prevUnseenMessages) => ({
           ...prevUnseenMessages,
@@ -84,7 +88,6 @@ export const ChatProvider = ({ children }) => {
     setSelectedUser,
     unseenMessages,
     setUnseenMessages,
-    getUsers,
   };
 
   return (

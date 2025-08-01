@@ -1,9 +1,10 @@
 import { generateToken } from "../lib/utils.js";
 import User from "../models/User.js";
+import Conversation from "../models/Conversation.js"
 import bcrypt from "bcryptjs";
 import cloudinary from "../lib/cloudinary.js";
 
-// SIGNUP
+
 export const signup = async (req, res) => {
     const { fullname, email, password, bio } = req.body;
 
@@ -92,5 +93,39 @@ export const updateProfile = async (req, res) => {
     } catch (error) {
         console.log(error.message);
         res.json({ success: false, message: error.message });
+    }
+};
+export const getUsersForSearch = async (req, res) => {
+    try {
+        const loggedInUserId = req.user._id;
+
+        const userConversations = await Conversation.find({
+            isGroupChat: false,
+            participants: loggedInUserId
+        });
+
+        const existingChatPartners = new Set();
+        userConversations.forEach(convo => {
+            convo.participants.forEach(participantId => {
+                if (!participantId.equals(loggedInUserId)) {
+                    existingChatPartners.add(participantId.toString());
+                }
+            });
+        });
+
+        const existingPartnersArray = Array.from(existingChatPartners);
+
+        const usersForSearch = await User.find({
+            _id: {
+                $ne: loggedInUserId,
+                $nin: existingPartnersArray
+            }
+        }).select("-password");
+
+        res.status(200).json(usersForSearch);
+
+    } catch (error) {
+        console.error("Error in getUsersForSearch: ", error.message);
+        res.status(500).json({ error: "Internal server error" });
     }
 };

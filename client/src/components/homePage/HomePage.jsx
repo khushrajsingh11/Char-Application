@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext, useRef } from 'react';
 import './HomePage.css';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 import ChatIcon from '@mui/icons-material/Chat'; 
 import SearchIcon from '@mui/icons-material/Search'; 
@@ -17,132 +18,200 @@ import ChatContext from '../../../context/ChatContext.jsx';
 import { AuthContext } from '../../../context/AuthContext';
 
 const HomePage = () => {
-  const [showDropdown, setShowDropdown] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-  const navigate = useNavigate();
-  
+const [showDropdown, setShowDropdown] = useState(false);
+const [isMobile, setIsMobile] = useState(false);
+const [searchInput, setSearchInput] = useState(''); 
+const [messageInput, setMessageInput] = useState(''); 
+const [selectedImage, setSelectedImage] = useState(null); 
+const [imagePreview, setImagePreview] = useState(null); 
+const [searchTerm, setSearchTerm] = useState("");
+const [searchableUsers, setSearchableUsers] = useState([]);
+const [filteredUsers, setFilteredUsers] = useState([]);
 
-  const [searchInput, setSearchInput] = useState(''); 
-  const [messageInput, setMessageInput] = useState(''); 
-  const [selectedImage, setSelectedImage] = useState(null); 
-  const [imagePreview, setImagePreview] = useState(null); 
-  
-  const fileInputRef = useRef(null); 
-  
-  const { users, selectedUser, setSelectedUser, sendMessage, messages,
-          unseenMessages, getUsers, getMessages } = useContext(ChatContext);
+const fileInputRef = useRef(null); 
+const navigate = useNavigate();
 
-  const { logout, onlineUsers, authUser } = useContext(AuthContext);
-  
-  useEffect(() => {
-    getUsers()
-  }, [onlineUsers, getUsers]);
+// Context
 
-  const filterUser = searchInput ? users.filter((user) => user.fullname.toLowerCase().includes(searchInput.toLowerCase())) : users;
 
-  const formatTime = (timestamp) => new Date(timestamp).toLocaleTimeString();
+const { getUsersForSearch } = useContext(ChatContext);
 
-  useEffect(() => {
-    if (selectedUser) {
-      getMessages(selectedUser._id);
-    }
-  }, [selectedUser]);
+const {
+  users,
+  selectedUser,
+  setSelectedUser,
+  sendMessage,
+  messages,
+  unseenMessages,
+  getUsers,
+  getMessages
+} = useContext(ChatContext);
 
-  const handleSendMessage = async () => {
-    if ((messageInput.trim() || selectedImage) && selectedUser) {
-      try {
-        const messageData = {
-          text: messageInput.trim(),
-        };
-        
-        // Add image if selected
-        if (selectedImage) {
-          messageData.image = selectedImage;
-        }
-        
-        await sendMessage(messageData);
-        
-        // Clear inputs after successful send
-        setMessageInput('');
-        setSelectedImage(null);
-        setImagePreview(null);
-        
-      } catch (error) {
-        console.error('Error sending message:', error);
-      }
-    }
-  };
+const {
+  logout,
+  onlineUsers,
+  authUser
+} = useContext(AuthContext);
 
-  const handleImageSelect = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      // Create preview URL
-      const previewUrl = URL.createObjectURL(file);
-      setImagePreview(previewUrl);
-      
-      // Convert to base64 for sending
-      const reader = new FileReader();
-      reader.onload = () => {
-        setSelectedImage(reader.result);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
+// Initial data load
+useEffect(() => {
+  getUsers();
+}, [onlineUsers, getUsers]);
 
-  const handleRemoveImage = () => {
-    setSelectedImage(null);
-    setImagePreview(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
-  const handleEditProfile = () => {
-    setShowDropdown(false);
-    alert('Profile editing functionality would go here');
-    navigate('/profile');
-  };
-
-  const handleLogout = () => {
-    setShowDropdown(false);
-    alert('Logout functionality would go here');
-    logout()
-  };
-
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter') {
-      handleSendMessage();
-    }
-  };
-
-  const handleBackToContacts = () => {
-    setSelectedUser(null);
-  };
-
-  const handleFriendprofile =()=>{
-    navigate('/friendprofile');
+// Load messages when user selected
+useEffect(() => {
+  if (selectedUser) {
+    getMessages(selectedUser._id);
   }
+}, [selectedUser]);
 
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (showDropdown && !event.target.closest('.dropdown-container')) {
-        setShowDropdown(false);
+// Format time
+const formatTime = (timestamp) => new Date(timestamp).toLocaleTimeString();
+
+// Cloudinary Upload Handler
+const uploadToCloudinary = async (file) => {
+  try {
+    const { data: signData } = await axios.get('/api/cloudinary-signature');
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('api_key', signData.api_key);
+    formData.append('timestamp', signData.timestamp);
+    formData.append('signature', signData.signature);
+
+    const uploadRes = await axios.post(
+      `https://api.cloudinary.com/v1_1/${signData.cloud_name}/auto/upload`,
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
       }
-    };
+    );
 
-    const handleResize = () => {
-      setIsMobile(window.innerWidth <= 768);
-    };
+    return uploadRes.data;
+  } catch (err) {
+    console.error('Cloudinary upload failed:', err);
+    throw err;
+  }
+};
 
-    handleResize();
-    document.addEventListener('mousedown', handleClickOutside);
-    window.addEventListener('resize', handleResize);
+// Handle image select and upload
+const handleImageSelect = async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  try {
+    const uploadIMG = await uploadToCloudinary(file);
+    setImagePreview(uploadIMG.secure_url);
+    setSelectedImage(uploadIMG.secure_url);
+  } catch (error) {
+    console.log(error.message);
+  }
+};
 
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      window.removeEventListener('resize', handleResize);
-    };
-  }, [showDropdown]);
+// Send message
+const handleSendMessage = async () => {
+  if ((messageInput.trim() || selectedImage) && selectedUser) {
+    try {
+      const messageData = {
+        text: messageInput.trim(),
+      };
+
+      if (selectedImage) {
+        messageData.image = selectedImage;
+      }
+
+      await sendMessage(messageData);
+
+      setMessageInput('');
+      setSelectedImage(null);
+      setImagePreview(null);
+    } catch (error) {
+      console.error('Error sending message:', error);
+    }
+  }
+};
+
+// Remove selected image
+const handleRemoveImage = () => {
+  setSelectedImage(null);
+  setImagePreview(null);
+  if (fileInputRef.current) {
+    fileInputRef.current.value = '';
+  }
+};
+
+// Navigation handlers
+const handleEditProfile = () => {
+  setShowDropdown(false);
+  alert('Profile editing functionality would go here');
+  navigate('/profile');
+};
+
+const handleLogout = () => {
+  setShowDropdown(false);
+  alert('Logout functionality would go here');
+  logout();
+};
+
+const handleBackToContacts = () => {
+  setSelectedUser(null);
+};
+
+const handleFriendprofile = () => {
+  navigate('/friendprofile');
+};
+
+// Keyboard send on Enter
+const handleKeyPress = (e) => {
+  if (e.key === 'Enter') {
+    handleSendMessage();
+  }
+};
+
+// Show dropdown or resize effect
+useEffect(() => {
+  const handleClickOutside = (event) => {
+    if (showDropdown && !event.target.closest('.dropdown-container')) {
+      setShowDropdown(false);
+    }
+  };
+
+  const handleResize = () => {
+    setIsMobile(window.innerWidth <= 768);
+  };
+
+  handleResize();
+  document.addEventListener('mousedown', handleClickOutside);
+  window.addEventListener('resize', handleResize);
+
+  return () => {
+    document.removeEventListener('mousedown', handleClickOutside);
+    window.removeEventListener('resize', handleResize);
+  };
+}, [showDropdown]);
+
+// Fetch users for search (first time only)
+const handleSearchOpen = async () => {
+  if (searchableUsers.length === 0) {
+    const users = await getUsersForSearch();
+    setSearchableUsers(users);
+  }
+};
+
+// Filter users based on search input
+const handleSearchChange = (e) => {
+  const input = e.target.value;
+  setSearchTerm(input);
+
+  const filtered = searchableUsers.filter(user =>
+    user.fullname.toLowerCase().includes(input.toLowerCase())
+  );
+  setFilteredUsers(filtered);
+};
+
+
+
 
   return (
     <div className="container">
@@ -193,7 +262,7 @@ const HomePage = () => {
             <div className="search-box">
               <SearchIcon style={{ fontSize: 16 }} />
               <input 
-                onChange={(e) => setSearchInput(e.target.value)}
+                onChange={(e) => handleSearchChange(e.target.value)}
                 type="text"
                 placeholder="Search User..."
                 className="search-input"
@@ -204,7 +273,7 @@ const HomePage = () => {
 
         
           <div className="contacts-list">
-            {filterUser.map((contact) => (
+            {filteredUsers.map((contact) => (
               <div
                 key={contact._id}
                 className={`contact-item ${selectedUser?._id === contact._id ? 'contact-item-active' : ''}`}

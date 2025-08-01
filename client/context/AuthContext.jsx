@@ -53,10 +53,11 @@ export const AuthProvider = ({ children }) => {
       if (data.success) {
         setAuthUser(data.userData);
         connectSocket(data.userData);
-        axios.defaults.headers.common["token"] = data.token; // Key: token, Value: data.token (raw value)
+        axios.defaults.headers.common["token"] = data.token; 
         setToken(data.token); // Token format preserved
         localStorage.setItem("token", data.token);
         toast.success(data.message);
+        
       } else {
         toast.error(data.message);
       }
@@ -70,7 +71,7 @@ export const AuthProvider = ({ children }) => {
     setToken(null); // Token format preserved
     setAuthUser(null);
     setOnlineUsers([]);
-    axios.defaults.headers.common["token"] = null; // Clear token header
+    axios.defaults.headers.common["token"] = null;
     toast.success("Logged out successfully");
     if (socket) socket.disconnect();
   };
