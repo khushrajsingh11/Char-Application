@@ -1,25 +1,27 @@
-import Conversation from "../models/conversation.model.js";
-import User from "../models/user.model.js";
-import Message from "../models/message.model.js";
+import Conversation from "../models/Conversation.js";
+import User from "../models/User.js";
+import Message from "../models/Message.js";
 
 
 export const createSoloChat = async (req, res) => {
   try {
-    const { userId } = req.params;
-
+    let { userId } = req.params;
+    userId = userId.trim();
     if (!userId) {
       return res.status(400).json({ message: "User ID is required" });
     }
-
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
-
-    const newConversation = await Conversation.create({
+    const createdConversation = await Conversation.create({
       participants: [userId, req.user._id],
       isGroupChat: false,
     });
+
+    // NEW: Populate participants for the response!
+    const newConversation = await Conversation.findById(createdConversation._id)
+      .populate("participants", "fullname profilePic"); // add group fields as needed
 
     res.status(201).json({
       message: "New conversation created",
@@ -121,7 +123,7 @@ export const getConversationsForSidebar = async (req, res) => {
 
 export const leaveGroup = async (req, res) => {
     try {
-        const { conversationId } = req.body;
+         const conversationId = req.params.id;
         const loggedInUserId = req.user._id;
 
         if (!conversationId) {
@@ -144,7 +146,7 @@ export const leaveGroup = async (req, res) => {
         // If the user who left was the admin, assign a new admin
         if (updatedConversation.groupAdmin.toString() === loggedInUserId.toString()) {
             if (updatedConversation.participants.length > 0) {
-                updatedConversation.groupAdmin = updatedConversation.participants[0]; // Assign the first user as new admin
+                updatedConversation.groupAdmin = updatedConversation.participants[0];
                 await updatedConversation.save();
             } else {
                 // Optional: If the group is empty, you might want to delete it
@@ -162,50 +164,57 @@ export const leaveGroup = async (req, res) => {
 };
 
 export const addUserToGroup = async (req, res) => {
-    try {
-        const { conversationId, userIdToAdd } = req.body;
-        const loggedInUserId = req.user._id;
+  try {
+    const conversationId = req.params.id || req.body.conversationId;
+    const { userIdToAdd } = req.body;
+    const loggedInUserId = req.user._id;
 
-        if (!conversationId || !userIdToAdd) {
-            return res.status(400).json({ message: "Conversation ID and User ID to add are required." });
-        }
-
-        const [conversation, userToAdd] = await Promise.all([
-            Conversation.findById(conversationId),
-            User.findById(userIdToAdd)
-        ]);
-
-        if (!conversation) {
-            return res.status(404).json({ message: "Conversation not found." });
-        }
-
-        if (!userToAdd) {
-            return res.status(404).json({ message: "User to add not found." });
-        }
-
-        if (conversation.groupAdmin.toString() !== loggedInUserId.toString()) {
-            return res.status(403).json({ message: "Only the group admin can add users." });
-        }
-
-        if (conversation.participants.includes(userIdToAdd)) {
-            return res.status(400).json({ message: "User is already in the group." });
-        }
-
-        // Add the user to the group
-        const updatedConversation = await Conversation.findByIdAndUpdate(
-            conversationId,
-            { $push: { participants: userIdToAdd } },
-            { new: true } // Return the updated document
-        )
-        .populate("participants", "-password")
-        .populate("groupAdmin", "-password");
-
-        res.status(200).json(updatedConversation);
-
-    } catch (error) {
-        console.error("Error in addUserToGroup: ", error.message);
-        res.status(500).json({ message: "Internal server error" });
+    if (!conversationId || !userIdToAdd) {
+      return res.status(400).json({ message: "Conversation ID and User ID to add are required." });
     }
+
+    const [conversation, userToAdd] = await Promise.all([
+      Conversation.findById(conversationId),
+      User.findById(userIdToAdd)
+    ]);
+
+    if (!conversation) {
+      return res.status(404).json({ message: "Conversation not found." });
+    }
+
+    if (!conversation.isGroupChat) {
+      return res.status(400).json({ message: "This is not a group chat." });
+    }
+
+    if (!userToAdd) {
+      return res.status(404).json({ message: "User to add not found." });
+    }
+
+    if (conversation.groupAdmin?.toString() !== loggedInUserId.toString()) {
+      return res.status(403).json({ message: "Only the group admin can add users." });
+    }
+
+    // Ensure id comparison works for ObjectIds
+    const alreadyInGroup = conversation.participants.some(
+      (p) => p.toString() === userIdToAdd.toString()
+    );
+    if (alreadyInGroup) {
+      return res.status(400).json({ message: "User is already in the group." });
+    }
+
+    const updatedConversation = await Conversation.findByIdAndUpdate(
+      conversationId,
+      { $addToSet: { participants: userIdToAdd } },
+      { new: true }
+    )
+      .populate("participants", "-password")
+      .populate("groupAdmin", "-password");
+
+    res.status(200).json(updatedConversation);
+  } catch (error) {
+    console.error("Error in addUserToGroup: ", error.message);
+    res.status(500).json({ message: "Internal server error" });
+  }
 };
 
 export const renameGroup = async (req, res) => {
@@ -261,14 +270,13 @@ const checkAvailable = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // Check if a solo conversation already exists
     const existingChat = await Conversation.findOne({
       isGroupChat: false,
       participants: { $all: [loggedInUserId, userId] },
     });
 
     if (existingChat) {
-      return res.status(200).json({ available: false, message: "Conversation already exists" });
+      return res.status(200).json({ available: false, existingChat, message: "Conversation already exists" });
     }
 
     res.status(200).json({ available: true, message: "User is available for a new solo chat" });

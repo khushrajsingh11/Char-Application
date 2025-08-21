@@ -1,47 +1,55 @@
 import express from 'express'
 import mongoose from 'mongoose';
 import User from '../models/User.js'
-import Conversation from '../models/Conversation.js'
-import Message from '../models/Message.js'
 import { io, userSocketMap} from '../server.js';
 import cloudinary from '../lib/cloudinary.js';
 import dotenv from 'dotenv';
 let { cloud_name, api_key, api_secret } = cloudinary.config();
 
+import Conversation from "../models/Conversation.js";
+import Message from "../models/Message.js";
+
+
 export const getMessages = async (req, res) => {
-    try {
-        const { conversationId } = req.params;
-        const loggedInUserId = req.user._id;
+  try {
+    const conversationId = req.params.id;
+    const loggedInUserId = req.user._id;
 
-        const conversation = await Conversation.findOne({
-            _id: conversationId,
-            participants: loggedInUserId,
-        }).populate("messages");
+    // Check if the user is a participant in the conversation
+    const conversation = await Conversation.findOne({
+      _id: conversationId,
+      participants: { $in: [loggedInUserId] },
+    });
 
-        if (!conversation) {
-            return res.status(404).json({ error: "Conversation not found or you're not a member." });
-        }
-        
-        Message.updateMany(
-            {
-                conversationId: conversationId,
-                seen: false,
-                senderId: { $ne: loggedInUserId }
-            },
-            {
-                seen: true
-            }).populate({
-                path: "messages",
-                options: { sort: { updatedAt: 1 } }  
-              }).exec();
-              
-        res.status(200).json(conversation.messages);
-
-    } catch (error) {
-        console.error("Error in getMessages: ", error);
-        res.status(500).json({ error: "Internal server error" });
+    if (!conversation) {
+      return res.status(404).json({ error: "Conversation not found or you're not a member." });
     }
+
+    // Fetch messages from the Message model
+    const messages = await Message.find({ conversationId })
+      .sort({ createdAt: 1 });
+
+    // Mark messages as seen
+    await Message.updateMany(
+      {
+        conversationId,
+        seen: false,
+        senderId: { $ne: loggedInUserId }
+      },
+      { seen: true }
+    );
+res.status(200).json({
+  success: true,
+  message: "Messages fetched successfully",
+  data: messages,
+});
+  } catch (error) {
+    console.error("Error in getMessages:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
 };
+
+
 
 export const markAsSeen = async (req, res) => {
   try {
@@ -66,106 +74,129 @@ export const markAsSeen = async (req, res) => {
 
 
 export const sendMessage = async (req, res) => {
-    try {
-        const { text, image } = req.body;
-        const { conversationId } = req.params;
-        const senderId = req.user._id;
+  try {
+    const { text, image } = req.body;
+    const { conversationId } = req.params;
+    const senderId = req.user._id;
 
-        if (!text && !image) {
-            return res.status(400).json({ error: 'Text or image is required' });
-        }
-
-        const conversation = await Conversation.findById(conversationId);
-
-        if (!conversation) {
-            return res.status(404).json({ error: "Conversation not found." });
-        }
-
-        let imageUrl = '';
-        if (image) {
-            const uploadResponse = await cloudinary.uploader.upload(image);
-            imageUrl = uploadResponse.secure_url;
-        }
-
-        const newMessage = new Message({
-            senderId,
-            conversationId,
-            text,
-            image: imageUrl,
-        });
-
-        conversation.lastMessage = newMessage._id;
-        
-        await Promise.all([
-            newMessage.save(),
-            conversation.save()
-        ]);
-
-        io.to(conversationId).emit('newMessage', newMessage);
-
-        res.status(201).json(newMessage);
-
-    } catch (error) {
-        console.error('Error in sendMessage:', error);
-        res.status(500).json({ error: 'Server error' });
+    if (!text && !image) {
+      return res.status(400).json({ error: 'Text or image is required' });
     }
+
+    const conversation = await Conversation.findById(conversationId);
+
+    if (!conversation) {
+      return res.status(404).json({ error: "Conversation not found." });
+    }
+
+    const newMessage = new Message({
+      senderId,
+      conversationId,
+      text,
+      image, // ✅ Use directly — already uploaded
+    });
+
+    conversation.lastMessage = newMessage._id;
+
+    await Promise.all([
+      newMessage.save(),
+      conversation.save()
+    ]);
+
+    io.to(conversationId).emit('newMessage', newMessage);
+
+    res.status(201).json({
+      success: true,
+      message: "Message sent successfully",
+      newMessage,
+    });
+  } catch (error) {
+    console.error('Error in sendMessage:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
 };
 
 export const deleteMessage = async (req, res) => {
-    try {
-        const { messageId } = req.params;
-        const loggedInUserId = req.user._id;
+  try {
+    const { messageId } = req.params;
+    const loggedInUserId = req.user._id;
 
-        const message = await Message.findById(messageId);
+    const message = await Message.findById(messageId);
 
-        if (!message) {
-            return res.status(404).json({ message: "Message not found." });
-        }
-
-        if (message.senderId.toString() !== loggedInUserId.toString()) {
-            return res.status(403).json({ message: "You are not authorized to delete this message." });
-        }
-        await Message.findByIdAndDelete(messageId);
-
-        res.status(200).json({ message: "Message deleted successfully." });
-
-    } catch (error) {
-        console.error("Error in deleteMessage: ", error.message);
-        res.status(500).json({ message: "Internal server error" });
+    if (!message) {
+      return res.status(404).json({
+        success: false,
+        message: "Message not found.",
+      });
     }
+
+    if (message.senderId.toString() !== loggedInUserId.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not authorized to delete this message.",
+      });
+    }
+
+    await Message.findByIdAndDelete(messageId);
+
+    res.status(200).json({
+      success: true,
+      message: "Message deleted successfully.",
+    });
+
+  } catch (error) {
+    console.error("Error in deleteMessage:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
 };
+
 
 export const editMessage = async (req, res) => {
-    try {
-        const { messageId } = req.params;
-        const { newText } = req.body;
-        const loggedInUserId = req.user._id;
+  try {
+    const { messageId } = req.params;
+    const { newText, conversationId } = req.body;
+    const loggedInUserId = req.user._id;
 
-        if (!newText) {
-            return res.status(400).json({ message: "New text is required." });
-        }
-
-        const message = await Message.findById(messageId);
-
-        if (!message) {
-            return res.status(404).json({ message: "Message not found." });
-        }
-
-        if (message.senderId.toString() !== loggedInUserId.toString()) {
-            return res.status(403).json({ message: "You are not authorized to edit this message." });
-        }
-
-        message.text = newText;
-        message.isEdited = true;
-        await message.save();
-
-        res.status(200).json(message);
-
-    } catch (error) {
-        console.error("Error in editMessage: ", error.message);
-        res.status(500).json({ message: "Internal server error" });
+    if (!newText) {
+      return res.status(400).json({ success: false, message: "New text is required." });
     }
+
+    const message = await Message.findById(messageId);
+
+    if (!message) {
+      return res.status(404).json({ success: false, message: "Message not found." });
+    }
+
+      if (!conversationId) {
+      return res.status(400).json({ success: false, message: "Conversation ID is required." });
+    }
+
+
+    if (message.senderId.toString() !== loggedInUserId.toString()) {
+      return res.status(403).json({ success: false, message: "You are not authorized to edit this message." });
+    }
+
+    message.text = newText;
+    message.isEdited = true;
+    await message.save();
+
+    await Conversation.findByIdAndUpdate(conversationId, { lastMessage: messageId });
+
+    res.status(200).json({
+      success: true,
+      message: "Message updated successfully.",
+      data: message,
+    });
+
+  } catch (error) {
+    console.error("Error in editMessage: ", error.message);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
 };
+
 export const reactToMessage = async (req, res) => {
     try {
         const { messageId } = req.params;
@@ -219,7 +250,7 @@ export const getCloudinarySignature = (req, res) => {
   try {
     const timestamp = Math.floor(Date.now() / 1000);
 
-    const signature = cloudinary.v2.utils.api_sign_request(
+    const signature = cloudinary.utils.api_sign_request(
       { timestamp },
       process.env.CLOUDINARY_API_SECRET
     );

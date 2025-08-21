@@ -1,0 +1,473 @@
+/* AddUserToGroupSidebar.css */
+
+.add-user-sidebar {
+  width: 100%;
+  max-width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.05);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.add-user-sidebar-mobile {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  width: 100%;
+  max-width: 100%;
+}
+
+/* Header */
+.add-user-header {
+  display: flex;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.02);
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.back-btn {
+  width: 40px;
+  height: 40px;
+  border: none;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.back-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+.add-user-title {
+  flex: 1;
+  min-width: 0;
+}
+
+.add-user-title h3 {
+  color: white;
+  margin: 0 0 4px 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.add-user-title p {
+  color: rgba(255, 255, 255, 0.6);
+  margin: 0;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+}
+
+/* Search */
+.add-user-search {
+  padding: 16px 24px;
+  flex-shrink: 0;
+}
+
+.search-box {
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 25px;
+  padding: 12px 20px;
+  gap: 12px;
+  transition: all 0.2s ease;
+}
+
+.search-box:focus-within {
+  background: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1);
+}
+
+.search-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: white;
+  font-size: 15px;
+  outline: none;
+}
+
+.search-input::placeholder {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* Selected users summary */
+.selected-users-summary {
+  padding: 16px 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(76, 175, 80, 0.05);
+  flex-shrink: 0;
+}
+
+.selected-count {
+  display: flex;
+  align-items: center;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 12px;
+}
+
+.selected-users-preview {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.selected-user-chip {
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  padding: 6px 12px;
+  gap: 8px;
+  font-size: 13px;
+  color: white;
+}
+
+.selected-user-chip.more-users {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 6px 12px;
+  font-weight: 500;
+}
+
+.selected-user-avatar {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ff6b6b, #4ecdc4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 10px;
+  font-weight: 600;
+  overflow: hidden;
+}
+
+.chip-avatar-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.selected-user-name {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* Users list */
+.add-user-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 24px;
+}
+
+.users-list-header {
+  padding: 16px 0 8px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  margin-bottom: 8px;
+}
+
+.users-list-header h4 {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 14px;
+  font-weight: 500;
+  margin: 0;
+}
+
+.add-user-item {
+  display: flex;
+  align-items: center;
+  padding: 12px 0;
+  cursor: pointer;
+  border-radius: 12px;
+  transition: all 0.2s ease;
+  gap: 12px;
+  margin: 4px 0;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.add-user-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+.add-user-item.selected {
+  background: rgba(76, 175, 80, 0.1);
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+.add-user-item:focus {
+  outline: 2px solid rgba(255, 255, 255, 0.3);
+  outline-offset: 2px;
+}
+
+.user-avatar {
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ff6b6b, #4ecdc4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
+  font-size: 16px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.avatar-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.user-info {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.user-name {
+  color: white;
+  margin: 0 0 4px 0;
+  font-size: 16px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-email {
+  color: rgba(255, 255, 255, 0.6);
+  margin: 0;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.selection-indicator {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.selection-circle {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.add-user-item:hover .selection-circle {
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+/* Loading state */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.loading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: white;
+  animation: spin 1s ease-in-out infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* No users state */
+.no-users {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: rgba(255, 255, 255, 0.6);
+  text-align: center;
+}
+
+.no-users p {
+  margin: 16px 0 0 0;
+  font-size: 16px;
+}
+
+.no-users-subtitle {
+  margin: 8px 0 0 0 !important;
+  font-size: 14px;
+  opacity: 0.8;
+}
+
+/* Footer */
+.add-user-footer {
+  padding: 20px 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.02);
+  flex-shrink: 0;
+}
+
+.add-users-btn {
+  width: 100%;
+  padding: 14px 20px;
+  background: linear-gradient(135deg, #4CAF50, #45a049);
+  border: none;
+  border-radius: 25px;
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+}
+
+.add-users-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(76, 175, 80, 0.4);
+}
+
+.add-users-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+}
+
+.add-users-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .add-user-header {
+    padding: 16px 20px;
+  }
+
+  .add-user-search {
+    padding: 12px 20px;
+  }
+
+  .selected-users-summary {
+    padding: 12px 20px;
+  }
+
+  .add-user-list {
+    padding: 0 20px;
+  }
+
+  .add-user-footer {
+    padding: 16px 20px;
+  }
+
+  .add-users-btn {
+    padding: 12px 20px;
+    font-size: 15px;
+  }
+
+  .user-avatar {
+    width: 40px;
+    height: 40px;
+    font-size: 14px;
+  }
+
+  .user-name {
+    font-size: 15px;
+  }
+
+  .user-email {
+    font-size: 12px;
+  }
+
+  .selected-user-chip {
+    font-size: 12px;
+    padding: 4px 8px;
+  }
+
+  .selected-user-avatar {
+    width: 16px;
+    height: 16px;
+    font-size: 9px;
+  }
+}
+
+/* Scrollbar styling */
+.add-user-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.add-user-list::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+.add-user-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+}
+
+.add-user-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+/* Accessibility improvements */
+@media (prefers-reduced-motion: reduce) {
+  .add-user-item,
+  .back-btn,
+  .add-users-btn {
+    transition: none;
+  }
+  
+  .loading-spinner {
+    animation: none;
+  }
+}
+
+/* Dark theme adjustments */
+@media (prefers-color-scheme: dark) {
+  .search-box:focus-within {
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.2);
+  }
+}

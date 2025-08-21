@@ -1,0 +1,546 @@
+/* Sidebar.css - With proper font sizing that inherits from parent */
+
+.sidebar {
+  width: 350px;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(10px);
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  transition: width 0.3s ease;
+  /* REMOVED: font-size declaration - inherits from parent (14px) */
+}
+
+.sidebar-mobile-hidden {
+  width: 0;
+  display: none;
+}
+
+.sidebar-mobile-full {
+  width: 100%;
+}
+
+.sidebar-header {
+  padding: 20px;
+  height: 93px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: white;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.logo-icon {
+  width: 32px;
+  height: 32px;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+
+.logo-icon svg {
+  width: 18px !important;
+  height: 18px !important;
+  font-size: 18px !important;
+}
+
+.header-actions {
+  display: flex;
+  gap: 8px;
+  position: relative;
+}
+
+.action-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.action-btn svg {
+  width: 14px !important;
+  height: 14px !important;
+  font-size: 14px !important;
+}
+
+.action-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 8px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 12px;
+  padding: 8px 0;
+  min-width: 160px;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+  z-index: 1000;
+}
+
+.dropdown-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border: none;
+  background: transparent;
+  color: #374151;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.dropdown-item svg {
+  width: 14px !important;
+  height: 14px !important;
+  font-size: 14px !important;
+}
+
+.dropdown-item:hover {
+  background: rgba(99, 102, 241, 0.1);
+  color: #4f46e5;
+}
+
+.dropdown-item.logout:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
+}
+
+.search-container {
+  padding: 18px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 10px 14px;
+  gap: 10px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.search-box svg {
+  width: 14px !important;
+  height: 14px !important;
+  font-size: 14px !important;
+}
+
+.search-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: white;
+  font-size: 13px;
+  outline: none;
+}
+
+.search-input::placeholder {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 13px;
+}
+
+.contacts-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px 0;
+}
+
+.contact-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 14px; /* MINIMIZED: Reduced from 12px 16px to 8px 14px */
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.contact-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.contact-item-active {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.avatar {
+  width: 36px; /* MINIMIZED: Reduced from 42px to 36px */
+  height: 36px; /* MINIMIZED: Reduced from 42px to 36px */
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ff6b6b, #4ecdc4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
+  font-size: 14px; /* MINIMIZED: Reduced from 16px to 14px */
+  position: relative;
+  margin-right: 10px; /* MINIMIZED: Reduced from 12px to 10px */
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.avatar svg {
+  width: 20px !important; /* FIXED: Proper icon size */
+  height: 20px !important;
+  font-size: 20px !important;
+}
+
+.contact-avatar-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.online-indicator {
+  position: absolute;
+  bottom: 1px;
+  right: 1px;
+  width: 10px; /* FIXED: Proper size */
+  height: 10px;
+  background: #4ade80;
+  border: 2px solid rgba(0, 0, 0, 0.4);
+  border-radius: 50%;
+}
+
+.contact-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.contact-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2px; /* MINIMIZED: Reduced from 4px to 2px */
+}
+
+.contact-name {
+  color: white;
+  font-size: 10px; /* MINIMIZED: Reduced from 14px to 12px */
+  font-weight: 300; /* MINIMIZED: Reduced from 600 to 500 */
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 160px; /* MINIMIZED: Reduced from 180px to 160px */
+}
+
+.contact-name.group-name {
+  font-size: 10px; /* Unified small size for group names */
+  font-weight: 300;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.contact-name svg {
+  width: 10px !important;
+  height: 10px !important;
+  font-size: 10px !important;
+  opacity: 0.7;
+  margin-left: 2px;
+}
+
+.contact-time {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 11px;
+  font-weight: 400;
+  flex-shrink: 0;
+}
+
+.contact-message {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.contact-message-text {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 12px; /* FIXED: Readable message size */
+  font-weight: 400;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  line-height: 1.3;
+}
+
+.contact-message-text.no-messages {
+  font-style: italic;
+  opacity: 0.6;
+  font-size: 11px;
+}
+
+.unread-badge {
+  background: #667eea;
+  color: white;
+  border-radius: 50%;
+  width: 18px; /* FIXED: Proper badge size */
+  height: 18px;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  flex-shrink: 0;
+  min-width: 18px;
+}
+
+/* Empty State Styles */
+.no-conversations {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  padding: 40px 20px;
+}
+
+.no-conversations-content {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.7);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.no-conversations-content svg {
+  width: 40px !important;
+  height: 40px !important;
+  font-size: 40px !important;
+}
+
+.no-conversations-content p {
+  margin: 4px 0;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.no-conversations-content p:first-of-type {
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 14px;
+}
+
+.no-conversations-content p:last-of-type {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 12px;
+}
+
+/* No Results State */
+.no-results {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.no-results p {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 13px;
+  margin: 0;
+}
+
+/* REMOVED: Problematic inheritance override */
+/* .sidebar * {
+  font-size: inherit;
+} */
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .sidebar {
+    width: 100%;
+  }
+  
+  .sidebar-mobile-hidden {
+    width: 0;
+    display: none;
+  }
+  
+  .logo {
+    font-size: 16px;
+  }
+  
+  .contact-item {
+    padding: 6px 12px; /* MINIMIZED: Reduced from 10px 14px to 6px 12px */
+  }
+  
+  .avatar {
+    width: 32px; /* MINIMIZED: Reduced from 38px to 32px */
+    height: 32px; /* MINIMIZED: Reduced from 38px to 32px */
+    font-size: 12px; /* MINIMIZED: Reduced from 14px to 12px */
+    margin-right: 8px; /* MINIMIZED: Reduced from 10px to 8px */
+  }
+  
+  .contact-name {
+    font-size: 11px; /* MINIMIZED: Reduced from 13px to 11px for mobile */
+    max-width: 120px; /* MINIMIZED: Reduced from 140px to 120px */
+  }
+  
+  .contact-name.group-name {
+    font-size: 11px; /* MINIMIZED: Reduced from 13px to 11px for mobile */
+  }
+  
+  .contact-message-text {
+    font-size: 11px;
+  }
+  
+  .contact-time {
+    font-size: 10px;
+  }
+  
+  .unread-badge {
+    width: 16px;
+    height: 16px;
+    font-size: 9px;
+  }
+  
+  .no-conversations {
+    padding: 30px 16px;
+  }
+  
+  .no-conversations-content p:first-of-type {
+    font-size: 13px;
+  }
+  
+  .no-conversations-content p:last-of-type {
+    font-size: 11px;
+  }
+
+  .logo-icon svg {
+    width: 16px !important;
+    height: 16px !important;
+    font-size: 16px !important;
+  }
+
+  .action-btn {
+    width: 28px;
+    height: 28px;
+  }
+
+  .action-btn svg {
+    width: 12px !important;
+    height: 12px !important;
+    font-size: 12px !important;
+  }
+
+  .avatar svg {
+    width: 16px !important;
+    height: 16px !important;
+    font-size: 16px !important;
+  }
+
+  .contact-name svg {
+    width: 10px !important;
+    height: 10px !important;
+    font-size: 10px !important;
+  }
+
+  .search-box {
+    padding: 8px 12px;
+  }
+  
+  .search-input {
+    font-size: 12px;
+  }
+}
+
+/* Scrollbar Styles */
+.contacts-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.contacts-list::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+}
+
+.contacts-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 2px;
+}
+
+.contacts-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+/* Accessibility improvements */
+.contact-item:focus {
+  outline: 2px solid rgba(255, 255, 255, 0.5);
+  outline-offset: -2px;
+}
+
+.action-btn:focus {
+  outline: 2px solid rgba(255, 255, 255, 0.5);
+  outline-offset: 2px;
+}
+
+/* Animation improvements */
+@keyframes slideInFromLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.contact-item {
+  animation: slideInFromLeft 0.2s ease-out;
+}
+
+/* High contrast support */
+@media (prefers-contrast: high) {
+  .contact-item-active {
+    background: rgba(255, 255, 255, 0.2);
+    box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.5);
+  }
+}
+
+/* Force smaller name size only inside the sidebar to avoid clashes with other pages */
+.sidebar .contact-name {
+  font-size: 16px !important;
+  font-weight: 500 !important;
+}
+
+.sidebar .contact-name svg {
+  width: 16px !important;
+  height: 16px !important;
+  font-size: 16px !important;
+}
