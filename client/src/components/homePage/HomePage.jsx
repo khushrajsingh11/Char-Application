@@ -16,7 +16,7 @@ const HomePage = () => {
   const [contactInfoData, setContactInfoData] = useState(null); // NEW STATE
 
   // Context
-  const { getMessages } = useContext(ChatContext);
+  const {  getMessages } = useContext(ChatContext);
   const {
     isMobile,
     setIsMobile,
@@ -148,7 +148,7 @@ useEffect(() => {
   };
 }, [selectedConversation, selectedUser, setSelectedConversation]);
 
-  // Get messages when conversation is selected
+
   useEffect(() => {
     if (selectedConversation) {
       getMessages(selectedConversation._id);

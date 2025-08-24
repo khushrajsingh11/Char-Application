@@ -8,6 +8,7 @@ import userRoute from './routes/userRoutes.js';
 import messageRouter from './routes/messageRouter.js';
 import conversationRouter from './routes/conversationRoute.js';
 import callRouters from './routes/callRoutes.js';
+import callEvents from './sockets/callEvents.js';
 
 dotenv.config();
 
@@ -44,6 +45,8 @@ const handleDisconnect = (socket) => {
 
 io.on("connection", (socket) => {
     handleConnection(socket);
+
+     callEvents(io, socket);
     
     socket.on('disconnect', () => {
         handleDisconnect(socket);

@@ -26,16 +26,23 @@ const VideoCall = ({ conversationInfo, onClose }) => {
   const localVideoRef = useRef(null);
   const remoteVideoRefs = useRef(new Map());
 
+  // Set local video stream
   useEffect(() => {
     if (localStream && localVideoRef.current) {
+      console.log('Setting local stream to video element');
       localVideoRef.current.srcObject = localStream;
     }
   }, [localStream]);
 
+  // Set remote video streams
   useEffect(() => {
+    console.log('Remote streams updated, count:', remoteStreams.size);
     Array.from(remoteStreams.entries()).forEach(([id, stream]) => {
       const ref = remoteVideoRefs.current.get(id);
-      if (ref) ref.srcObject = stream;
+      if (ref) {
+        console.log('Setting remote stream for participant:', id);
+        ref.srcObject = stream;
+      }
     });
   }, [remoteStreams]);
 
@@ -56,7 +63,24 @@ const VideoCall = ({ conversationInfo, onClose }) => {
     onClose();
   };
 
-  if (call.status === "none") return null;
+  const handleAcceptCall = async () => {
+    console.log('Accepting call from VideoCall component');
+    await acceptCall();
+  };
+
+  const handleRejectCall = async () => {
+    console.log('Rejecting call from VideoCall component');
+    await rejectCall();
+    onClose();
+  };
+
+  // Don't render if no active call
+  if (call.status === "none") {
+    console.log('VideoCall: call status is none, not rendering');
+    return null;
+  }
+
+  console.log('VideoCall rendering with status:', call.status);
 
   return (
     <div className="video-call-overlay">
@@ -70,25 +94,33 @@ const VideoCall = ({ conversationInfo, onClose }) => {
               {call.status === "active" && "Connected"}
             </span>
           </div>
-          <button className="close-btn" onClick={onClose}><CloseIcon /></button>
+          <button className="close-btn" onClick={onClose}>
+            <CloseIcon />
+          </button>
         </div>
+
         <div className="video-area">
           <div className="remote-video-group">
-            {remoteStreams.size === 0 &&
+            {remoteStreams.size === 0 && (
               <div className="no-remote-video">
                 <p>Waiting for other participant...</p>
               </div>
-            }
+            )}
             {Array.from(remoteStreams.entries()).map(([id]) => (
               <video
                 key={id}
-                ref={el => el && remoteVideoRefs.current.set(id, el)}
+                ref={el => {
+                  if (el) {
+                    remoteVideoRefs.current.set(id, el);
+                  }
+                }}
                 autoPlay
                 playsInline
                 className="remote-video"
               />
             ))}
           </div>
+
           <div className="local-video-container">
             <video
               ref={localVideoRef}
@@ -99,6 +131,7 @@ const VideoCall = ({ conversationInfo, onClose }) => {
             />
           </div>
         </div>
+
         <div className="call-controls">
           <button
             className={`control-btn ${!isAudioEnabled ? 'control-btn-active' : ''}`}
@@ -107,6 +140,7 @@ const VideoCall = ({ conversationInfo, onClose }) => {
           >
             {!isAudioEnabled ? <MicOffIcon /> : <MicIcon />}
           </button>
+
           <button
             className={`control-btn ${!isVideoEnabled ? 'control-btn-active' : ''}`}
             onClick={handleToggleVideo}
@@ -114,6 +148,7 @@ const VideoCall = ({ conversationInfo, onClose }) => {
           >
             {!isVideoEnabled ? <VideocamOffIcon /> : <VideocamIcon />}
           </button>
+
           <button
             className="control-btn control-btn-end"
             onClick={handleEndCall}
@@ -122,14 +157,20 @@ const VideoCall = ({ conversationInfo, onClose }) => {
             <CallEndIcon />
           </button>
         </div>
+
+        {/* Incoming call overlay */}
         {call.status === "receiving" && (
           <div className="incoming-call-overlay">
             <div className="incoming-call-content">
               <h3>Incoming Call</h3>
               <p>{call.callerInfo?.name || "Unknown"}</p>
               <div className="incoming-call-controls">
-                <button className="accept-btn" onClick={acceptCall}>Accept</button>
-                <button className="reject-btn" onClick={rejectCall}>Decline</button>
+                <button className="accept-btn" onClick={handleAcceptCall}>
+                  Accept
+                </button>
+                <button className="reject-btn" onClick={handleRejectCall}>
+                  Decline
+                </button>
               </div>
             </div>
           </div>

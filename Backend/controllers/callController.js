@@ -44,6 +44,9 @@ export const startCall = async (req, res) => {
     const { conversationId } = req.params;
     const { userId, callerInfo } = req.body;
 
+
+
+    console.log("call started at backend");
     if (!userId || !callerInfo) {
       return res.status(400).json({ success: false, message: 'User ID and caller info are required' });
     }

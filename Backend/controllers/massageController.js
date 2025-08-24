@@ -93,7 +93,7 @@ export const sendMessage = async (req, res) => {
       senderId,
       conversationId,
       text,
-      image, // ✅ Use directly — already uploaded
+      image, 
     });
 
     conversation.lastMessage = newMessage._id;
@@ -103,7 +103,15 @@ export const sendMessage = async (req, res) => {
       conversation.save()
     ]);
 
-    io.to(conversationId).emit('newMessage', newMessage);
+    // ✅ Emit to all participants in the conversation
+   conversation.participants.forEach(participantId => {
+  if (participantId.toString() === senderId.toString()) return;
+  const socketId = userSocketMap[participantId.toString()];
+  if (socketId) {
+    io.to(socketId).emit('newMessage', newMessage);
+  }
+});
+
 
     res.status(201).json({
       success: true,
@@ -115,6 +123,7 @@ export const sendMessage = async (req, res) => {
     res.status(500).json({ error: 'Server error' });
   }
 };
+
 
 export const deleteMessage = async (req, res) => {
   try {

@@ -1,7 +1,41 @@
+import Conversation from "../models/Conversation.js";
 const activeCalls = new Map();
 
 export default (io, socket) => {
     const { userId } = socket.handshake.query;
+
+    const autoJoinOngoingCalls = async () => {
+    if (!userId) {
+        console.warn(`Socket ${socket.id} connected without userId, skipping auto join`);
+        return;
+    }
+
+    try {
+        const ongoingConversations = await Conversation.find({
+            "call.status": "ongoing",
+            participants: userId
+        }).select("_id"); // fetch only what we need
+
+        if (!ongoingConversations || ongoingConversations.length === 0) {
+            console.log(`No ongoing calls found for user ${userId}`);
+            return;
+        }
+
+        for (const conv of ongoingConversations) {
+            joinCall({ conversationId: conv._id.toString() });
+        }
+
+        console.log(
+            `User ${userId} auto-joined ${ongoingConversations.length} ongoing call(s)`
+        );
+    } catch (err) {
+        console.error(
+            `Error while auto-joining ongoing calls for user ${userId}:`,
+            err.message
+        );
+    }
+};
+
 
     const joinCall = ({ conversationId }) => {
         socket.join(conversationId);
@@ -74,6 +108,7 @@ export default (io, socket) => {
             }
         });
     };
+  
 
     socket.on('join-call', joinCall);
     socket.on('leave-call', leaveCall);
@@ -82,4 +117,5 @@ export default (io, socket) => {
     socket.on('send-answer', sendAnswer);
     socket.on('send-ice-candidate', sendIceCandidate);
     socket.on('disconnect', handleDisconnect);
+     autoJoinOngoingCalls();
 };

@@ -21,6 +21,7 @@ import { useCall } from '../../../context/CallContext.jsx';
 import VideoCall from './VideoCall.jsx';
 import ProfilePageF from '../../FriendsProfilePage/ProfilePageF.jsx';
 
+
 const ChatSection = ({
   selectedUser,
   setSelectedUser,
@@ -38,9 +39,11 @@ const ChatSection = ({
   const [originalMessage, setOriginalMessage] = useState('');
   const [showFriendProfile, setShowFriendProfile] = useState(false);
 
+
   const fileInputRef = useRef(null);
   const infoDropdownRef = useRef(null);
   const navigate = useNavigate();
+
 
   const { sendMessage, messages, deleteMessageById, editMessageById } = useContext(ChatContext);
   const { onlineUsers, authUser } = useContext(AuthContext);
@@ -59,6 +62,7 @@ const ChatSection = ({
     remoteStreams,
   } = useCall();
 
+
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (infoDropdownRef.current && !infoDropdownRef.current.contains(event.target)) {
@@ -70,6 +74,7 @@ const ChatSection = ({
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
+
 
   const getCurrentConversationInfo = () => {
     if (!selectedConversation) return null;
@@ -110,12 +115,15 @@ const ChatSection = ({
     return null;
   };
 
+
   const conversationInfo = getCurrentConversationInfo();
+
 
   const isGroupAdmin = () => {
     if (!conversationInfo?.isGroup || !authUser) return false;
     return conversationInfo.groupAdmin === authUser._id;
   };
+
 
   const handleNameClick = () => {
     if (!conversationInfo) return;
@@ -134,10 +142,12 @@ const ChatSection = ({
     if (onShowContactInfo) onShowContactInfo(contactData);
   };
 
+
   const formatTime = (timestamp) => {
     if (!timestamp) return '';
     return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
+
 
   const uploadToCloudinary = async (file) => {
     try {
@@ -163,6 +173,7 @@ const ChatSection = ({
     }
   };
 
+
   const handleImageSelect = async (e) => {
     if (isUpdateMode) return;
     const file = e.target.files[0];
@@ -175,6 +186,7 @@ const ChatSection = ({
       console.log(error.message);
     }
   };
+
 
   const handleSendMessage = async () => {
     if (isUpdateMode) {
@@ -206,6 +218,7 @@ const ChatSection = ({
     }
   };
 
+
   const handleRemoveImage = () => {
     if (isUpdateMode) return;
     setSelectedImage(null);
@@ -213,9 +226,11 @@ const ChatSection = ({
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
+
   const handleBackToContacts = () => {
     setSelectedUser(null);
   };
+
 
   const handleInfoClick = (event) => {
     event.stopPropagation();
@@ -226,10 +241,12 @@ const ChatSection = ({
     }
   };
 
+
   const handleAddUser = () => {
     setShowInfoDropdown(false);
     if (onShowAddUserSidebar) onShowAddUserSidebar();
   };
+
 
   const handleRenameGroup = () => {
     setShowInfoDropdown(false);
@@ -247,6 +264,7 @@ const ChatSection = ({
     if (onShowContactInfo) onShowContactInfo(contactData);
   };
 
+
   const handleLeaveGroup = () => {
     setShowInfoDropdown(false);
     const confirmMessage = `Are you sure you want to leave "${conversationInfo.name}"?`;
@@ -254,6 +272,7 @@ const ChatSection = ({
       leaveGroup(selectedConversation._id);
     }
   };
+
 
   const handleVideoCall = async () => {
     if (!selectedConversation || isStartingCall) return;
@@ -267,6 +286,7 @@ const ChatSection = ({
     }
   };
 
+
   const handleVoiceCall = async () => {
     if (!selectedConversation || isStartingCall) return;
     try {
@@ -279,11 +299,13 @@ const ChatSection = ({
     }
   };
 
+
   const handleKeyPress = (e) => {
     if (e.key === 'Enter') {
       handleSendMessage();
     }
   };
+
 
   const handleUpdateMessage = (messageId) => {
     const messageToUpdate = messages.find((msg) => msg._id === messageId);
@@ -298,10 +320,12 @@ const ChatSection = ({
     }
   };
 
+
   const handleDeleteMessage = (messageId) => {
     deleteMessageById(messageId);
     setActiveDropdown(null);
   };
+
 
   const handleCancelUpdate = () => {
     setIsUpdateMode(false);
@@ -311,16 +335,19 @@ const ChatSection = ({
     setActiveDropdown(null);
   };
 
+
   const toggleDropdown = (messageId, event) => {
     if (isUpdateMode) return;
     event.stopPropagation();
     setActiveDropdown(activeDropdown === messageId ? null : messageId);
   };
 
+
   const closeDropdown = () => {
     setActiveDropdown(null);
     setShowInfoDropdown(false);
   };
+
 
   if (showFriendProfile) {
     return (
@@ -331,6 +358,7 @@ const ChatSection = ({
       />
     );
   }
+
 
   return (
     <div
@@ -379,7 +407,6 @@ const ChatSection = ({
               </div>
             </div>
             <div className="chat-actions">
-              {/* Voice and Video Call buttons - now shown for both individual and group chats */}
               <button
                 className={`chat-action-btn ${isStartingCall ? 'loading' : ''}`}
                 title={conversationInfo.isGroup ? "Group Voice Call" : "Voice Call"}
@@ -577,19 +604,10 @@ const ChatSection = ({
         </div>
       )}
 
+      {/* FIXED: Simplified VideoCall component rendering */}
       {call.status !== 'none' && (
         <VideoCall
-          call={call}
           conversationInfo={conversationInfo}
-          currentUser={authUser}
-          localStream={localStream}
-          remoteStreams={remoteStreams}
-          onAccept={acceptCall}
-          onReject={rejectCall}
-          onLeave={leaveCall}
-          onEnd={endCall}
-          isJoining={isJoiningCall}
-          isLeaving={isLeavingCall}
           onClose={() => {
             if (call.status === 'active' || call.status === 'initiating') {
               leaveCall();

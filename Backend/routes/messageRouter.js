@@ -6,7 +6,7 @@ import { getMessages, sendMessage ,getCloudinarySignature,markAsSeen, deleteMess
  messageRouter.get("/getmessages/:id",protectRoute,getMessages);
 messageRouter.post("/send/:conversationId",protectRoute,sendMessage);
 messageRouter.get("/cloudinary-signature",getCloudinarySignature);
-messageRouter.get("/messages/mark",protectRoute,markAsSeen);
+messageRouter.put("/mark/:messageId",protectRoute,markAsSeen);
 messageRouter.delete("/delete/:messageId", protectRoute, deleteMessage);
 messageRouter.patch("/edit/:messageId", protectRoute, editMessage);
 
