@@ -45,8 +45,8 @@ const ChatSection = ({
   const navigate = useNavigate();
 
 
-  const { sendMessage, messages, deleteMessageById, editMessageById } = useContext(ChatContext);
-  const { onlineUsers, authUser } = useContext(AuthContext);
+  const { sendMessage, messages, deleteMessageById, editMessageById,setMessages } = useContext(ChatContext);
+  const { onlineUsers, authUser,socket } = useContext(AuthContext);
   const { selectedConversation, leaveGroup } = useContext(ConversationContext);
   const {
     call,
@@ -74,6 +74,8 @@ const ChatSection = ({
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
+
+ 
 
 
   const getCurrentConversationInfo = () => {
@@ -114,6 +116,20 @@ const ChatSection = ({
     }
     return null;
   };
+
+//    useEffect(() => {
+//   if (!socket || !selectedConversation) return;
+
+//   // listen for deletes
+//   socket.on("messageDeleted", (messageId) => {
+//     setMessages((prev) => prev.filter((msg) => msg._id !== messageId));
+//   });
+
+//   // cleanup when leaving conversation
+//   return () => {
+//     socket.off("messageDeleted");
+//   };
+// }, [socket, selectedConversation,setMessages]);
 
 
   const conversationInfo = getCurrentConversationInfo();
@@ -186,6 +202,8 @@ const ChatSection = ({
       console.log(error.message);
     }
   };
+
+
 
 
   const handleSendMessage = async () => {

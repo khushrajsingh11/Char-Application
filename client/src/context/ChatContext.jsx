@@ -14,6 +14,83 @@ export const ChatProvider = ({ children }) => {
   const { axios, socket } = useContext(AuthContext);
   const { selectedConversation, setConversations } = useContext(ConversationContext);
 
+
+useEffect(() => {
+    if (!socket) return;
+    console.log("Setting up messageDeleted listener");
+
+    // Listener for when a message is deleted
+    socket.on("messageDeleted", ({ conversationId, messageId, newLastMessageText, newLastMessageCreatedAt }) => {
+      
+      // Update the active messages state if the user is in that conversation
+      setMessages(prevMessages => 
+        prevMessages.filter(msg => msg._id !== messageId)
+      );
+      
+      // Update the conversations list with the new last message
+      setConversations(prevConversations => 
+        prevConversations.map(conv => {
+          if (conv._id === conversationId) {
+            return {
+              ...conv,
+              lastMessage: {
+                text: newLastMessageText,
+                createdAt: newLastMessageCreatedAt
+              }
+            };
+          }
+          return conv;
+        })
+      );
+    });
+
+    // Cleanup function: this runs when the MessageProvider component unmounts
+    return () => socket.off("messageDeleted");
+
+  }, [socket]); 
+   useEffect(() => {
+    // 1. Ensure the socket is connected before setting up listeners
+    if (!socket) return;
+    
+    // 2. Listener for when a message is edited
+    socket.on("messageEdited", ({ conversationId, updatedMessage }) => {
+      // ✅ Logic for updating the messages in the active chat view
+      setMessages(prevMessages => 
+        prevMessages.map(msg => 
+          // Find the message by its ID and replace it with the updated object
+          msg._id === updatedMessage._id ? updatedMessage : msg
+        )
+      );
+
+      // ✅ Logic for updating the conversations list view
+      setConversations(prevConversations => 
+        prevConversations.map(conv => {
+          // Find the correct conversation by ID
+          if (conv._id === conversationId) {
+            // Check if the edited message was the last one in this conversation
+            if (conv.lastMessage?._id === updatedMessage._id) {
+              // Return a new object with the updated last message content
+              return {
+                ...conv,
+                lastMessage: updatedMessage
+              };
+            }
+          }
+          // Return the conversation unchanged if it's not the one we're looking for
+          return conv;
+        })
+      );
+    });
+
+    // 3. Cleanup function to remove the listener on unmount
+    return () => {
+      socket.off("messageEdited");
+    };
+
+  }, [socket, setMessages, setConversations]);
+
+
+
 const subscribeToMessages = useCallback(() => {
   // Early return if dependencies not ready
   if (!socket || !selectedConversation?._id) return;
@@ -192,6 +269,8 @@ useEffect(() => {
         toast.error(res.data.message);
         return;
       }
+
+      console.log("Message deleted:", res);
 
       // Filter out the deleted message
       const updatedMessages = messages.filter((msg) => msg._id !== messageId);
