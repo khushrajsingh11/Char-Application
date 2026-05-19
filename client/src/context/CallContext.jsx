@@ -190,11 +190,18 @@ export const CallProvider = ({ children }) => {
     };
 
     // When joining a call that already has participants, create peer connections
-    // as non-initiator — existing participants will send us offers
+    // as non-initiator — existing participants will send us offers.
+    // Guard: skip if local stream isn't ready yet (e.g. socket auto-rejoined
+    // an ongoing call room before the user started their camera). acceptCall()
+    // re-emits join-call which triggers this event again once stream is ready.
     const handleExistingParticipants = ({ participants }) => {
       console.log('Existing participants in call:', participants);
+      if (!peerManagerRef.current?.localStream) {
+        console.log('No local stream yet — deferring peer creation until stream is ready');
+        return;
+      }
       participants.forEach(participantId => {
-        if (participantId !== authUser._id && peerManagerRef.current) {
+        if (participantId !== authUser._id) {
           peerManagerRef.current.createPeer(participantId, false);
         }
       });
