@@ -53,19 +53,28 @@ export const AuthProvider = ({ children }) => {
     };
   }, []);
 
-  const connectSocket = (userData) => {
+  const connectSocket = (userData, existingSocket) => {
     if (!userData) return;
-    
+
+    if (existingSocket) existingSocket.disconnect();
+
     const newSocket = io(backendUrl, {
       query: { userId: userData._id },
     });
-    
-    newSocket.connect();
-    setSocket(newSocket);
-    
+
+    newSocket.on('connect', () => {
+      console.log('Socket connected, id:', newSocket.id);
+    });
+
     newSocket.on('getOnlineUsers', (userIds) => {
       setOnlineUsers(userIds);
     });
+
+    newSocket.on('disconnect', () => {
+      setOnlineUsers([]);
+    });
+
+    setSocket(newSocket);
   };
 
   const login = async (state, credentials) => {
@@ -74,7 +83,7 @@ export const AuthProvider = ({ children }) => {
       
       if (data.success) {
         setAuthUser(data.userData);
-        connectSocket(data.userData);
+        connectSocket(data.userData, socket);
         axios.defaults.headers.common['token'] = data.token;
         setToken(data.token);
         localStorage.setItem('token', data.token);
