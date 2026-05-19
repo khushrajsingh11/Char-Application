@@ -146,7 +146,29 @@ export const deleteMessage = async (req, res) => {
       });
     }
 
+    const conversationId = message.conversationId;
+
     await Message.findByIdAndDelete(messageId);
+
+    // Find the new last message after deletion and update the conversation
+    const newLastMessage = await Message.findOne({ conversationId }).sort({ createdAt: -1 });
+    await Conversation.findByIdAndUpdate(conversationId, {
+      lastMessage: newLastMessage?._id || null,
+    });
+
+    // Emit to all participants so their UI updates in real-time
+    const conversation = await Conversation.findById(conversationId);
+    conversation.participants.forEach(participantId => {
+      const socketId = userSocketMap[participantId.toString()];
+      if (socketId) {
+        io.to(socketId).emit('messageDeleted', {
+          conversationId: conversationId.toString(),
+          messageId,
+          newLastMessageText: newLastMessage?.text || '',
+          newLastMessageCreatedAt: newLastMessage?.createdAt || null,
+        });
+      }
+    });
 
     res.status(200).json({
       success: true,
@@ -192,7 +214,22 @@ export const editMessage = async (req, res) => {
     message.isEdited = true;
     await message.save();
 
-    await Conversation.findByIdAndUpdate(conversationId, { lastMessage: messageId });
+    const conversation = await Conversation.findByIdAndUpdate(
+      conversationId,
+      { lastMessage: messageId },
+      { new: true }
+    );
+
+    // Emit to all participants so their UI updates in real-time
+    conversation.participants.forEach(participantId => {
+      const socketId = userSocketMap[participantId.toString()];
+      if (socketId) {
+        io.to(socketId).emit('messageEdited', {
+          conversationId,
+          updatedMessage: message,
+        });
+      }
+    });
 
     res.status(200).json({
       success: true,
