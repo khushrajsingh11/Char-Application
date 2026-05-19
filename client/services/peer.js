@@ -77,15 +77,8 @@ class PeerManager {
       });
 
       if (event.streams && event.streams[0]) {
-        const remoteStream = event.streams;
-        console.log(`Remote stream received from ${participantId}:`, remoteStream);
-        console.log('Remote stream tracks:', remoteStream.getTracks().map(t => ({
-          kind: t.kind,
-          enabled: t.enabled,
-          readyState: t.readyState,
-          id: t.id
-        })));
-
+        const remoteStream = event.streams[0];
+        console.log(`Remote stream received from ${participantId}`);
         if (this.onRemoteStream) {
           this.onRemoteStream(participantId, remoteStream);
         }
@@ -264,8 +257,8 @@ removePeer(peerId) {
   
   try {
     const peer = this.peers.get(peerId);
-    if (peer && peer.close) {
-      peer.close();
+    if (peer && peer.connection) {
+      peer.connection.close();
     }
     this.peers.delete(peerId);
     
