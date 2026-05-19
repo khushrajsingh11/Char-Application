@@ -330,7 +330,7 @@
   box-sizing: border-box;
 }
 .input-base::placeholder {
-  color: rgba(6,182,212,0.38);
+  color: rgba(6,182,212,0.75);
 }
 .input-base:focus {
   background-color: rgba(0,0,0,0.313);
