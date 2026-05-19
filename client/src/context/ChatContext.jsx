@@ -46,12 +46,18 @@ useEffect(() => {
     // Cleanup function: this runs when the MessageProvider component unmounts
     return () => socket.off("messageDeleted");
 
-  }, [socket]); 
-   useEffect(() => {
-    // 1. Ensure the socket is connected before setting up listeners
+  }, [socket]);
+
+  useEffect(() => {
     if (!socket) return;
-    
-    // 2. Listener for when a message is edited
+    socket.on('messageReaction', ({ updatedMessage }) => {
+      setMessages(prev => prev.map(msg => msg._id === updatedMessage._id ? updatedMessage : msg));
+    });
+    return () => socket.off('messageReaction');
+  }, [socket]);
+
+   useEffect(() => {
+    if (!socket) return;
     socket.on("messageEdited", ({ conversationId, updatedMessage }) => {
       // ✅ Logic for updating the messages in the active chat view
       setMessages(prevMessages => 
@@ -322,6 +328,14 @@ useEffect(() => {
     }
   };
 
+  const reactToMessage = async (messageId, emoji) => {
+    try {
+      await axios.post(`/api/messages/react/${messageId}`, { emoji });
+    } catch (error) {
+      console.error('Failed to react to message:', error.message);
+    }
+  };
+
   const value = {
     messages,
     users,
@@ -336,6 +350,7 @@ useEffect(() => {
     setUsers,
     deleteMessageById,
     editMessageById,
+    reactToMessage,
     fetchAllUsers,
   };
 

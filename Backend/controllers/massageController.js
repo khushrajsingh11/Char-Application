@@ -283,6 +283,18 @@ export const reactToMessage = async (req, res) => {
         }
 
         await message.save();
+
+        // Emit to all participants so their UI updates in real-time
+        conversation.participants.forEach(participantId => {
+            const socketId = userSocketMap[participantId.toString()];
+            if (socketId) {
+                io.to(socketId).emit('messageReaction', {
+                    conversationId: message.conversationId.toString(),
+                    updatedMessage: message,
+                });
+            }
+        });
+
         res.status(200).json(message);
 
     } catch (error) {
