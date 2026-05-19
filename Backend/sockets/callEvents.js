@@ -46,13 +46,21 @@ export default (io, socket) => {
         socket.to(conversationId).emit('participant-joined', { participantId: userId, conversationId });
     };
 
-    const leaveCall = ({ conversationId }) => {
+    const leaveCall = async ({ conversationId }) => {
         socket.leave(conversationId);
 
         if (activeCalls.has(conversationId)) {
             activeCalls.get(conversationId).delete(userId);
             if (activeCalls.get(conversationId).size === 0) {
                 activeCalls.delete(conversationId);
+                // Last participant left — end the call in DB so it never gets stuck as 'ongoing'
+                try {
+                    await Conversation.findByIdAndUpdate(conversationId, {
+                        $set: { 'call.status': 'ended', 'call.endedAt': new Date(), 'call.participants': [] }
+                    });
+                } catch (err) {
+                    console.error('Error ending call in DB on disconnect:', err.message);
+                }
             }
         }
         socket.to(conversationId).emit('participant-left', { participantId: userId });

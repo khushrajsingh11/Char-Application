@@ -66,14 +66,16 @@ export const startCall = async (req, res) => {
       return res.status(403).json({ success: false, message: 'Access denied' });
     }
 
-    // If there's an "ongoing" call but none of its participants are still connected,
-    // treat it as stale and reset it so a new call can start
+    // If there's an "ongoing" call, check if any OTHER participant (not the caller)
+    // is still connected. If not, the call is stale and should be reset.
+    // We exclude the caller themselves because they ARE connected — they're the
+    // one retrying after their own previous failed/unclean call.
     const existingConv = await Conversation.findById(conversationId);
     if (existingConv?.call?.status === 'ongoing') {
-      const hasConnectedParticipant = (existingConv.call.participants || []).some(
-        p => userSocketMap[p.toString()]
-      );
-      if (!hasConnectedParticipant) {
+      const otherConnected = (existingConv.call.participants || [])
+        .filter(p => p.toString() !== userId.toString())
+        .some(p => userSocketMap[p.toString()]);
+      if (!otherConnected) {
         await Conversation.findByIdAndUpdate(conversationId, {
           $set: { 'call.status': 'ended', 'call.endedAt': new Date(), 'call.participants': [] }
         });
