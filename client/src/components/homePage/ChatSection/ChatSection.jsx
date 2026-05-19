@@ -34,6 +34,9 @@ const ChatSection = ({
   const [imagePreview, setImagePreview] = useState(null);
   const [activeDropdown, setActiveDropdown] = useState(null);
   const [showInfoDropdown, setShowInfoDropdown] = useState(false);
+  const [activeReactionPicker, setActiveReactionPicker] = useState(null);
+
+  const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '😡'];
   const [isUpdateMode, setIsUpdateMode] = useState(false);
   const [updateMessageId, setUpdateMessageId] = useState(null);
   const [originalMessage, setOriginalMessage] = useState('');
@@ -45,7 +48,7 @@ const ChatSection = ({
   const navigate = useNavigate();
 
 
-  const { sendMessage, messages, deleteMessageById, editMessageById,setMessages } = useContext(ChatContext);
+  const { sendMessage, messages, deleteMessageById, editMessageById, setMessages, reactToMessage } = useContext(ChatContext);
   const { onlineUsers, authUser,socket } = useContext(AuthContext);
   const { selectedConversation, leaveGroup } = useContext(ConversationContext);
   const {
@@ -364,6 +367,18 @@ const ChatSection = ({
   const closeDropdown = () => {
     setActiveDropdown(null);
     setShowInfoDropdown(false);
+    setActiveReactionPicker(null);
+  };
+
+  const toggleReactionPicker = (messageId, e) => {
+    e.stopPropagation();
+    setActiveReactionPicker(prev => prev === messageId ? null : messageId);
+    setActiveDropdown(null);
+  };
+
+  const handleReact = async (messageId, emoji) => {
+    setActiveReactionPicker(null);
+    await reactToMessage(messageId, emoji);
   };
 
 
@@ -513,7 +528,59 @@ const ChatSection = ({
                           />
                         </div>
                       )}
+
+                      {/* Existing reactions */}
+                      {message.reactions?.length > 0 && (
+                        <div className="message-reactions">
+                          {Object.entries(
+                            message.reactions.reduce((acc, r) => {
+                              const key = r.emoji;
+                              if (!acc[key]) acc[key] = { count: 0, reacted: false };
+                              acc[key].count++;
+                              if (r.userId?.toString() === authUser._id?.toString()) acc[key].reacted = true;
+                              return acc;
+                            }, {})
+                          ).map(([emoji, { count, reacted }]) => (
+                            <button
+                              key={emoji}
+                              className={`reaction-chip ${reacted ? 'reaction-chip-active' : ''}`}
+                              onClick={(e) => { e.stopPropagation(); handleReact(message._id, emoji); }}
+                            >
+                              {emoji}{count > 1 && <span className="reaction-count">{count}</span>}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
                       <span className="message-time">{formatTime(message.createdAt)}</span>
+
+                      {/* Reaction picker — available for all messages */}
+                      {!isUpdateMode && (
+                        <div className="reaction-picker-wrap">
+                          <button
+                            className="reaction-trigger-btn"
+                            onClick={(e) => toggleReactionPicker(message._id, e)}
+                            title="React"
+                          >
+                            😊
+                          </button>
+                          {activeReactionPicker === message._id && (
+                            <div className="reaction-picker">
+                              {REACTION_EMOJIS.map(emoji => (
+                                <button
+                                  key={emoji}
+                                  className="reaction-option"
+                                  onClick={(e) => { e.stopPropagation(); handleReact(message._id, emoji); }}
+                                >
+                                  {emoji}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Edit/delete dropdown — only for sender */}
                       {message.senderId === authUser._id && !isUpdateMode && (
                         <>
                           <button

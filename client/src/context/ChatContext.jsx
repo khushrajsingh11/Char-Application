@@ -9,10 +9,9 @@ export const ChatProvider = ({ children }) => {
   const [messages, setMessages] = useState([]);
   const [users, setUsers] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
-  const [unseenMessages, setUnseenMessages] = useState({});
 
   const { axios, socket } = useContext(AuthContext);
-  const { selectedConversation, setConversations } = useContext(ConversationContext);
+  const { selectedConversation, setConversations, setUnseenMessages, unseenMessages } = useContext(ConversationContext);
 
 
 useEffect(() => {
@@ -47,12 +46,18 @@ useEffect(() => {
     // Cleanup function: this runs when the MessageProvider component unmounts
     return () => socket.off("messageDeleted");
 
-  }, [socket]); 
-   useEffect(() => {
-    // 1. Ensure the socket is connected before setting up listeners
+  }, [socket]);
+
+  useEffect(() => {
     if (!socket) return;
-    
-    // 2. Listener for when a message is edited
+    socket.on('messageReaction', ({ updatedMessage }) => {
+      setMessages(prev => prev.map(msg => msg._id === updatedMessage._id ? updatedMessage : msg));
+    });
+    return () => socket.off('messageReaction');
+  }, [socket]);
+
+   useEffect(() => {
+    if (!socket) return;
     socket.on("messageEdited", ({ conversationId, updatedMessage }) => {
       // ✅ Logic for updating the messages in the active chat view
       setMessages(prevMessages => 
@@ -133,9 +138,9 @@ const subscribeToMessages = useCallback(() => {
         
     } else {
       // Message from different conversation - increment unseen counter
-      setUnseenMessages((prevUnseenMessages) => ({
-        ...prevUnseenMessages,
-        [newMessage.senderId]: (prevUnseenMessages[newMessage.senderId] || 0) + 1,
+      setUnseenMessages(prev => ({
+        ...prev,
+        [newMessage.conversationId]: (prev[newMessage.conversationId] || 0) + 1,
       }));
       
       // Still update the conversations list for other conversations
@@ -183,6 +188,7 @@ useEffect(() => {
       const { data } = await axios.get(`/api/messages/getmessages/${conversationId}`);
       if (data.success) {
         setMessages(data.data);
+        setUnseenMessages(prev => ({ ...prev, [conversationId]: 0 }));
       }
     } catch (error) {
       toast.error(error.message);
@@ -322,6 +328,14 @@ useEffect(() => {
     }
   };
 
+  const reactToMessage = async (messageId, emoji) => {
+    try {
+      await axios.post(`/api/messages/react/${messageId}`, { emoji });
+    } catch (error) {
+      console.error('Failed to react to message:', error.message);
+    }
+  };
+
   const value = {
     messages,
     users,
@@ -336,6 +350,7 @@ useEffect(() => {
     setUsers,
     deleteMessageById,
     editMessageById,
+    reactToMessage,
     fetchAllUsers,
   };
 

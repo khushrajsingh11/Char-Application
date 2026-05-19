@@ -27,21 +27,22 @@ export const Sidebar = ({ selectedUser, setSelectedUser, isMobile, sidebarView, 
   const navigate = useNavigate();
 
   // Context
-  const { getMessages, unseenMessages, messages } = useContext(ChatContext);
+  const { getMessages, messages } = useContext(ChatContext);
   const {
     logout,
     onlineUsers,
     authUser,
   } = useContext(AuthContext);
 
-  const { 
-    conversations, 
+  const {
+    conversations,
     setConversations,
     setSelectedConversation,
     selectedConversation,
     createSoloChat,
     createGroupChat,
-    addUsersToGroup
+    addUsersToGroup,
+    unseenMessages,
   } = useContext(ConversationContext);
 
   // Ensure conversations is always an array
@@ -534,10 +535,6 @@ export const Sidebar = ({ selectedUser, setSelectedUser, isMobile, sidebarView, 
                         displayInfo.name.charAt(0).toUpperCase()
                       )}
                     </>
-                  )}
-                  {/* Only show online indicator for individual chats */}
-                  {!displayInfo.isGroup && displayInfo.userId && onlineUsers?.includes(displayInfo.userId) && (
-                    <div className="online-indicator"></div>
                   )}
                 </div>
                 <div className="contact-info">
