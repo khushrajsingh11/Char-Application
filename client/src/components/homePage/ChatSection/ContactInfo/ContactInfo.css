@@ -173,6 +173,17 @@
   margin: 0;
 }
 
+.contact-unread-badge {
+  display: inline-block;
+  margin-top: 10px;
+  background: #06b6d4;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 4px 14px;
+  border-radius: 20px;
+}
+
 /* Info Sections */
 .contact-info-section {
   margin: 0;

@@ -8,7 +8,8 @@ import CloseIcon from '@mui/icons-material/Close';
 import ConversationContext from '../../../../context/ConversationContext.jsx';
 
 const ContactInfo = ({ contactData, onBack, isMobile }) => {
-  const { renameGroup, setSelectedConversation } = useContext(ConversationContext);
+  const { renameGroup, setSelectedConversation, unseenMessages } = useContext(ConversationContext);
+  const unreadCount = contactData?.conversationId ? (unseenMessages?.[contactData.conversationId] || 0) : 0;
   const [isRenaming, setIsRenaming] = useState(false);
   const [newName, setNewName] = useState('');
 
@@ -117,6 +118,11 @@ const ContactInfo = ({ contactData, onBack, isMobile }) => {
             )}
             {contactData.isGroup && (
               <p className="contact-group-info">{contactData.onlineStatus}</p>
+            )}
+            {unreadCount > 0 && (
+              <div className="contact-unread-badge">
+                {unreadCount} unread {unreadCount === 1 ? 'message' : 'messages'}
+              </div>
             )}
           </div>
         </div>
