@@ -282,3 +282,21 @@ export const getCallStatus = async (req, res) => {
     res.status(500).json({ success: false, message: process.env.NODE_ENV === 'production' ? 'Internal server error' : error.message });
   }
 };
+
+// One-shot cleanup: resets ALL conversations stuck with call.status = 'ongoing'
+export const resetAllOngoingCalls = async (req, res) => {
+  try {
+    const result = await Conversation.updateMany(
+      { 'call.status': 'ongoing' },
+      { $set: { 'call.status': 'ended', 'call.participants': [], 'call.endedAt': new Date() } }
+    );
+    res.status(200).json({
+      success: true,
+      message: `Reset ${result.modifiedCount} stuck call(s)`,
+      modifiedCount: result.modifiedCount,
+    });
+  } catch (error) {
+    console.error('Error resetting ongoing calls:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
