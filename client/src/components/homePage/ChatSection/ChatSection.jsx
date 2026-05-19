@@ -57,6 +57,7 @@ const ChatSection = ({
     acceptCall,
     rejectCall,
     leaveCall,
+    closeAllConnections,
     endCall,
     isStartingCall,
     isJoiningCall,
@@ -698,6 +699,8 @@ const ChatSection = ({
               leaveCall();
             } else if (call.status === 'receiving') {
               rejectCall();
+            } else {
+              closeAllConnections();
             }
           }}
         />

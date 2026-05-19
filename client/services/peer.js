@@ -30,16 +30,18 @@ class PeerManager {
 
     this.localStream = stream;
     
-    // Add stream to all existing peers
+    // Add stream to all existing peers (skip if sender already exists for that track)
     this.peers.forEach((peer, participantId) => {
       if (peer.connection && peer.connection.connectionState !== 'closed') {
-        console.log(`Adding tracks to existing peer: ${participantId}`);
+        const existingSenders = peer.connection.getSenders();
         stream.getTracks().forEach(track => {
-          try {
-            const sender = peer.connection.addTrack(track, stream);
-            console.log(`Added ${track.kind} track to peer ${participantId}:`, sender);
-          } catch (error) {
-            console.error(`Error adding track to peer ${participantId}:`, error);
+          const alreadySent = existingSenders.some(s => s.track === track);
+          if (!alreadySent) {
+            try {
+              peer.connection.addTrack(track, stream);
+            } catch (error) {
+              console.error(`Error adding track to peer ${participantId}:`, error);
+            }
           }
         });
       }
@@ -130,15 +132,17 @@ class PeerManager {
       console.log(`Signaling state for ${participantId}: ${peerConnection.signalingState}`);
     };
 
-    // Add local stream if available
+    // Add local stream if available (skip if sender already exists)
     if (this.localStream) {
-      console.log(`Adding local stream to peer ${participantId}`);
+      const existingSenders = peerConnection.getSenders();
       this.localStream.getTracks().forEach(track => {
-        try {
-          const sender = peerConnection.addTrack(track, this.localStream);
-          console.log(`Added ${track.kind} track to peer ${participantId}:`, sender);
-        } catch (error) {
-          console.error(`Error adding ${track.kind} track to peer ${participantId}:`, error);
+        const alreadySent = existingSenders.some(s => s.track === track);
+        if (!alreadySent) {
+          try {
+            peerConnection.addTrack(track, this.localStream);
+          } catch (error) {
+            console.error(`Error adding ${track.kind} track to peer ${participantId}:`, error);
+          }
         }
       });
     } else {

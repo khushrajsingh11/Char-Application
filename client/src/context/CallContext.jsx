@@ -404,18 +404,11 @@ export const CallProvider = ({ children }) => {
       throw new Error(response.data.message || 'Failed to start call');
     } catch (error) {
       console.error('Error starting call:', error);
-      setCall({ 
-        status: 'error', 
-        conversationId: null, 
-        callerInfo: null, 
-        participants: [], 
-        startedAt: null,
-        startedBy: null
-      });
       stopLocalStream();
-      return { 
-        success: false, 
-        error: error.response?.data?.message || error.message 
+      resetCallState(); // back to 'none' — hides the VideoCall overlay
+      return {
+        success: false,
+        error: error.response?.data?.message || error.message
       };
     } finally {
       setIsStartingCall(false);
