@@ -536,10 +536,6 @@ export const Sidebar = ({ selectedUser, setSelectedUser, isMobile, sidebarView, 
                       )}
                     </>
                   )}
-                  {/* Only show online indicator for individual chats */}
-                  {!displayInfo.isGroup && displayInfo.userId && onlineUsers?.includes(displayInfo.userId) && (
-                    <div className="online-indicator"></div>
-                  )}
                 </div>
                 <div className="contact-info">
                   <div className="contact-header">

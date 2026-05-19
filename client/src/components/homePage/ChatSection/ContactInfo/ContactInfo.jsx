@@ -6,10 +6,13 @@ import EditIcon from '@mui/icons-material/Edit';
 import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from '@mui/icons-material/Close';
 import ConversationContext from '../../../../context/ConversationContext.jsx';
+import { AuthContext } from '../../../../context/AuthContext.jsx';
 
 const ContactInfo = ({ contactData, onBack, isMobile }) => {
   const { renameGroup, setSelectedConversation, unseenMessages } = useContext(ConversationContext);
+  const { onlineUsers } = useContext(AuthContext);
   const unreadCount = contactData?.conversationId ? (unseenMessages?.[contactData.conversationId] || 0) : 0;
+  const isOnline = !contactData?.isGroup && contactData?.userId && onlineUsers?.includes(contactData.userId);
   const [isRenaming, setIsRenaming] = useState(false);
   const [newName, setNewName] = useState('');
 
@@ -112,6 +115,12 @@ const ContactInfo = ({ contactData, onBack, isMobile }) => {
                   </div>
                 )}
               </div>
+            )}
+            {!contactData.isGroup && (
+              <p className="contact-online-status">
+                <span className={`contact-online-dot ${isOnline ? 'dot-online' : 'dot-offline'}`} />
+                {isOnline ? 'Online' : 'Offline'}
+              </p>
             )}
             {!contactData.isGroup && contactData.phone && (
               <p className="contact-phone">{contactData.phone}</p>
