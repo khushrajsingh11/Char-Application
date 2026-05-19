@@ -1,121 +1,106 @@
 import Conversation from "../models/Conversation.js";
-const activeCalls = new Map();
+import { userSocketMap } from "../server.js";
+
+const activeCalls = new Map(); // conversationId → Set of userIds
 
 export default (io, socket) => {
     const { userId } = socket.handshake.query;
 
     const autoJoinOngoingCalls = async () => {
-    if (!userId) {
-        console.warn(`Socket ${socket.id} connected without userId, skipping auto join`);
-        return;
-    }
-
-    try {
-        const ongoingConversations = await Conversation.find({
-            "call.status": "ongoing",
-            participants: userId
-        }).select("_id"); // fetch only what we need
-
-        if (!ongoingConversations || ongoingConversations.length === 0) {
-            console.log(`No ongoing calls found for user ${userId}`);
+        if (!userId) {
+            console.warn(`Socket ${socket.id} connected without userId, skipping auto join`);
             return;
         }
+        try {
+            const ongoingConversations = await Conversation.find({
+                "call.status": "ongoing",
+                participants: userId
+            }).select("_id");
 
-        for (const conv of ongoingConversations) {
-            joinCall({ conversationId: conv._id.toString() });
+            if (!ongoingConversations || ongoingConversations.length === 0) return;
+
+            for (const conv of ongoingConversations) {
+                joinCall({ conversationId: conv._id.toString() });
+            }
+            console.log(`User ${userId} auto-joined ${ongoingConversations.length} ongoing call(s)`);
+        } catch (err) {
+            console.error(`Error auto-joining ongoing calls for user ${userId}:`, err.message);
         }
-
-        console.log(
-            `User ${userId} auto-joined ${ongoingConversations.length} ongoing call(s)`
-        );
-    } catch (err) {
-        console.error(
-            `Error while auto-joining ongoing calls for user ${userId}:`,
-            err.message
-        );
-    }
-};
-
+    };
 
     const joinCall = ({ conversationId }) => {
         socket.join(conversationId);
-        console.log(`Socket ${socket.id} (User: ${userId}) joined call room: ${conversationId}`);
 
         if (!activeCalls.has(conversationId)) {
             activeCalls.set(conversationId, new Set());
         }
-        activeCalls.get(conversationId).add(socket.id);
+        activeCalls.get(conversationId).add(userId);
 
-        const otherParticipants = Array.from(activeCalls.get(conversationId)).filter(
-            (id) => id !== socket.id
+        // Send existing participant user IDs to the new joiner
+        const otherParticipantIds = Array.from(activeCalls.get(conversationId)).filter(
+            id => id !== userId
         );
+        socket.emit('existing-participants', { participants: otherParticipantIds });
 
-        socket.emit('existing-participants', { participants: otherParticipants });
-        socket.to(conversationId).emit('new-participant', { participantId: socket.id });
+        // Notify everyone else in the room about the new participant (by user ID)
+        socket.to(conversationId).emit('participant-joined', { participantId: userId, conversationId });
     };
 
     const leaveCall = ({ conversationId }) => {
         socket.leave(conversationId);
-        console.log(`Socket ${socket.id} (User: ${userId}) left call room: ${conversationId}`);
 
         if (activeCalls.has(conversationId)) {
-            activeCalls.get(conversationId).delete(socket.id);
+            activeCalls.get(conversationId).delete(userId);
             if (activeCalls.get(conversationId).size === 0) {
                 activeCalls.delete(conversationId);
             }
         }
-        socket.to(conversationId).emit('participant-left', { participantId: socket.id });
+        socket.to(conversationId).emit('participant-left', { participantId: userId });
     };
 
     const rejectCall = ({ conversationId }) => {
-        console.log(`Call rejected by user ${userId} in conversation ${conversationId}`);
-        
-        socket.to(conversationId).emit('call-rejected', {
-            conversationId,
-            rejectedBy: userId
-        });
-        
-        if (activeCalls.has(conversationId)) {
-            activeCalls.delete(conversationId);
+        socket.to(conversationId).emit('call-rejected', { conversationId, rejectedBy: userId });
+        if (activeCalls.has(conversationId)) activeCalls.delete(conversationId);
+    };
+
+    // Relay WebRTC offer to target user by user ID
+    const relayOffer = ({ offer, to }) => {
+        const targetSocketId = userSocketMap[to];
+        if (targetSocketId) {
+            io.to(targetSocketId).emit('offer', { offer, from: userId });
         }
     };
 
-    const sendOffer = ({ targetSocketId, sdp }) => {
-        io.to(targetSocketId).emit('offer-received', {
-            from: socket.id,
-            sdp,
-        });
+    // Relay WebRTC answer to target user by user ID
+    const relayAnswer = ({ answer, to }) => {
+        const targetSocketId = userSocketMap[to];
+        if (targetSocketId) {
+            io.to(targetSocketId).emit('answer', { answer, from: userId });
+        }
     };
 
-    const sendAnswer = ({ targetSocketId, sdp }) => {
-        io.to(targetSocketId).emit('answer-received', {
-            from: socket.id,
-            sdp,
-        });
-    };
-
-    const sendIceCandidate = ({ targetSocketId, candidate }) => {
-        io.to(targetSocketId).emit('ice-candidate-received', {
-            from: socket.id,
-            candidate,
-        });
+    // Relay ICE candidate to target user by user ID
+    const relayIceCandidate = ({ candidate, to }) => {
+        const targetSocketId = userSocketMap[to];
+        if (targetSocketId) {
+            io.to(targetSocketId).emit('ice-candidate', { candidate, from: userId });
+        }
     };
 
     const handleDisconnect = () => {
         activeCalls.forEach((participants, conversationId) => {
-            if (participants.has(socket.id)) {
+            if (participants.has(userId)) {
                 leaveCall({ conversationId });
             }
         });
     };
-  
 
     socket.on('join-call', joinCall);
     socket.on('leave-call', leaveCall);
     socket.on('reject-call', rejectCall);
-    socket.on('send-offer', sendOffer);
-    socket.on('send-answer', sendAnswer);
-    socket.on('send-ice-candidate', sendIceCandidate);
+    socket.on('offer', relayOffer);
+    socket.on('answer', relayAnswer);
+    socket.on('ice-candidate', relayIceCandidate);
     socket.on('disconnect', handleDisconnect);
-     autoJoinOngoingCalls();
+    autoJoinOngoingCalls();
 };

@@ -1,4 +1,4 @@
-import { io } from '../server.js';
+import { io, userSocketMap } from '../server.js';
 import Conversation from '../models/Conversation.js';
 import mongoose from 'mongoose';
 
@@ -91,11 +91,20 @@ export const startCall = async (req, res) => {
       return res.status(409).json({ success: false, message: 'A call is already active in this conversation' });
     }
 
-    io.to(conversationId).emit('incoming-call', {
-      conversationId,
-      callerId: userId,
-      callerInfo,
-      timestamp: new Date()
+    // Emit incoming-call directly to each participant's socket (they are not in the room yet)
+    updatedConversation.participants.forEach(participantId => {
+      const pid = participantId.toString();
+      if (pid !== userId.toString()) {
+        const socketId = userSocketMap[pid];
+        if (socketId) {
+          io.to(socketId).emit('incoming-call', {
+            conversationId,
+            callerId: userId,
+            callerInfo,
+            timestamp: new Date()
+          });
+        }
+      }
     });
 
     console.log(`Call started by user ${userId} in conversation ${conversationId}`);

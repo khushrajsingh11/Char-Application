@@ -189,44 +189,54 @@ export const CallProvider = ({ children }) => {
       closeAllConnections();
     };
 
-    // WebRTC signaling events
-    const handleOffer = async ({ offer, from, to }) => {
-      console.log('Received offer:', { from, to: authUser._id });
-      if (peerManagerRef.current && to === authUser._id) {
+    // When joining a call that already has participants, create peer connections
+    // as non-initiator — existing participants will send us offers
+    const handleExistingParticipants = ({ participants }) => {
+      console.log('Existing participants in call:', participants);
+      participants.forEach(participantId => {
+        if (participantId !== authUser._id && peerManagerRef.current) {
+          peerManagerRef.current.createPeer(participantId, false);
+        }
+      });
+    };
+
+    // WebRTC signaling events — backend routes directly to this socket, no `to` check needed
+    const handleOffer = async ({ offer, from }) => {
+      console.log('Received offer from:', from);
+      if (peerManagerRef.current) {
         await peerManagerRef.current.handleOffer(from, offer);
       }
     };
 
-    const handleAnswer = async ({ answer, from, to }) => {
-      console.log('Received answer:', { from, to: authUser._id });
-      if (peerManagerRef.current && to === authUser._id) {
+    const handleAnswer = async ({ answer, from }) => {
+      console.log('Received answer from:', from);
+      if (peerManagerRef.current) {
         await peerManagerRef.current.handleAnswer(from, answer);
       }
     };
 
-    const handleIceCandidate = async ({ candidate, from, to }) => {
-      console.log('Received ICE candidate:', { from, to: authUser._id });
-      if (peerManagerRef.current && to === authUser._id) {
+    const handleIceCandidate = async ({ candidate, from }) => {
+      console.log('Received ICE candidate from:', from);
+      if (peerManagerRef.current) {
         await peerManagerRef.current.handleIceCandidate(from, candidate);
       }
     };
 
     // Register event listeners
     socket.on('incoming-call', handleIncomingCall);
+    socket.on('existing-participants', handleExistingParticipants);
     socket.on('participant-joined', handleParticipantJoined);
     socket.on('participant-left', handleParticipantLeft);
     socket.on('call-ended', handleCallEnded);
     socket.on('end-call', handleCallEnded);
     socket.on('call-rejected', handleCallRejected);
-    
-    // WebRTC signaling events
     socket.on('offer', handleOffer);
     socket.on('answer', handleAnswer);
     socket.on('ice-candidate', handleIceCandidate);
 
     return () => {
-      console.log('Cleaning up socket event handlers');
       socket.off('incoming-call', handleIncomingCall);
+      socket.off('existing-participants', handleExistingParticipants);
       socket.off('participant-joined', handleParticipantJoined);
       socket.off('participant-left', handleParticipantLeft);
       socket.off('call-ended', handleCallEnded);
