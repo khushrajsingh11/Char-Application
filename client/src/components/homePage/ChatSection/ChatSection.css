@@ -24,6 +24,9 @@
   display: flex;
   align-items: center;
   gap: 12px;
+  flex: 1;
+  min-width: 0; /* allow flex child to shrink below content width */
+  overflow: hidden;
 }
 
 .chat-avatar {
@@ -76,6 +79,10 @@
   margin: 0 0 2px 0;
   display: flex;
   align-items: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 /* NEW: Clickable name styles */
@@ -99,6 +106,7 @@
   display: flex;
   gap: 8px;
   align-items: center;
+  flex-shrink: 0; /* never let action buttons get squeezed off screen */
 }
 
 .chat-actions button {
@@ -827,13 +835,17 @@
     display: flex;
   }
   
+  .chat-header {
+    padding: 12px 16px;
+  }
+
   .chat-actions {
     gap: 4px;
   }
-  
+
   .chat-action-btn {
-    width: 36px;
-    height: 36px;
+    width: 34px;
+    height: 34px;
   }
 
   .shared-image {
