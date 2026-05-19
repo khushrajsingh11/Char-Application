@@ -9,10 +9,9 @@ export const ChatProvider = ({ children }) => {
   const [messages, setMessages] = useState([]);
   const [users, setUsers] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
-  const [unseenMessages, setUnseenMessages] = useState({});
 
   const { axios, socket } = useContext(AuthContext);
-  const { selectedConversation, setConversations } = useContext(ConversationContext);
+  const { selectedConversation, setConversations, setUnseenMessages, unseenMessages } = useContext(ConversationContext);
 
 
 useEffect(() => {
@@ -133,9 +132,9 @@ const subscribeToMessages = useCallback(() => {
         
     } else {
       // Message from different conversation - increment unseen counter
-      setUnseenMessages((prevUnseenMessages) => ({
-        ...prevUnseenMessages,
-        [newMessage.senderId]: (prevUnseenMessages[newMessage.senderId] || 0) + 1,
+      setUnseenMessages(prev => ({
+        ...prev,
+        [newMessage.conversationId]: (prev[newMessage.conversationId] || 0) + 1,
       }));
       
       // Still update the conversations list for other conversations
@@ -183,6 +182,7 @@ useEffect(() => {
       const { data } = await axios.get(`/api/messages/getmessages/${conversationId}`);
       if (data.success) {
         setMessages(data.data);
+        setUnseenMessages(prev => ({ ...prev, [conversationId]: 0 }));
       }
     } catch (error) {
       toast.error(error.message);
